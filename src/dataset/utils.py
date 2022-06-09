@@ -104,4 +104,3 @@ def add_additive_constants(expr, placeholders, unary_operators=[]):
         expr = placeholders["ca"] + expr
 
     return expr
-

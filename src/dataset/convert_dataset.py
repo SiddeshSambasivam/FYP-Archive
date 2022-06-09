@@ -1,20 +1,22 @@
+import os
+import types
+from multiprocessing import Manager
+from itertools import chain
+from pathlib import Path
+
+import h5py
+import click
+import pickle
+import copyreg
+import signal
 import pandas as pd
 import numpy as np
-from multiprocessing import Manager
-import click
-import os
-import generator
-import signal
-import dclasses
-from pathlib import Path
-import pickle
-from sympy import lambdify
-from tools import create_env, H5FilesCreator, code_unpickler, code_pickler
-import copyreg
-import types
-from itertools import chain
 import sympy as sp
-import h5py
+from sympy import lambdify
+
+import dclasses
+import generator
+from tools import create_env, H5FilesCreator, code_unpickler, code_pickler
 
 
 class Pipepile:
@@ -70,15 +72,13 @@ class Pipepile:
 def converter(csv_path, dataset_name):
 
     dir_path = os.path.dirname(csv_path)
-    config_path = os.path.join(dir_path, 'dataset_configuration.json')
+    config_path = os.path.join(dir_path, "dataset_configuration.json")
     env, param, config_dict = create_env(config_path)
-
 
     validation = pd.read_csv(csv_path)
     copyreg.pickle(
         types.CodeType, code_pickler, code_unpickler
     )  # Needed for serializing code objects
-
 
     folder_path = Path(f"data/validation/{dataset_name}")
     folder_path.mkdir(parents=True, exist_ok=True)
