@@ -1,4 +1,4 @@
-.PHONY: clean create_environment
+.PHONY: clean env format
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -25,7 +25,7 @@ clean:
 	find . -type d -name "__pycache__" -delete
 
 ## Set up python interpreter environment
-create_environment:
+env:
 ifeq (True,$(HAS_CONDA))
 		@echo ">>> Detected conda, creating conda environment."
 else
@@ -33,3 +33,5 @@ else
 endif
 		@echo ">>> New conda env created. Activate with:\nsource activate FYP"
 
+format:
+	python -m black .
