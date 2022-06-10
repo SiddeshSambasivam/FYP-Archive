@@ -619,7 +619,7 @@ def learn(
                 )
             )
 
-        if nevals > n_samples:
+        if n_samples is not None and nevals > n_samples:
             break
 
     if verbose:

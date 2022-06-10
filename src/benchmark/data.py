@@ -16,8 +16,8 @@ def load_data(benchmark_name):
     return df
 
 
-def load_equation(benchmark_path, equation_idx):
-    df = load_data(benchmark_path)
+def load_equation(df, equation_idx):
+    # df = load_data(benchmark_path)
     benchmark_row = df.loc[equation_idx]
     gt_equation = benchmark_row["eq"]
     supp = eval(benchmark_row["support"])

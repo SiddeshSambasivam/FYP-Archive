@@ -1,11 +1,35 @@
+from typing import List
 import numpy as np
+import pandas as pd
+
+class Metrics:
+    """
+    Equation: 
+    Accuracy:
+    Timetaken:
+    """
+
+    def __init__(self) -> None:
+        self._metrics = []
+
+    def log_metric(self, eq, acc, dur) -> None:
+        self._metrics.append(
+            {
+                "eq": eq,
+                "accuracy": acc,
+                "duration": dur
+            }
+        )
+
+    def to_csv(self, path:str) -> None:
+        df = pd.DataFrame(data=self._metrics)
+        df.to_csv(path)
 
 
 def get_pointwise_acc(y_true, y_pred, rtol, atol):
     # r = roughly_equal(y_true, y_pred, rel_threshold)
     r = np.isclose(y_true, y_pred, rtol=rtol, atol=atol, equal_nan=True)
     return r.mean()
-
 
 def _get_acc_key(iid_ood_mode, cfg):
     return (

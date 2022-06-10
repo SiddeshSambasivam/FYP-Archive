@@ -6,7 +6,7 @@ import seaborn as sns
 from sympy import lambdify
 
 # from csem_exptrack import process, utils
-from .data import get_variables
+# from .data import get_variables
 
 
 def evaluate_func(func_str, vars_list, X):
