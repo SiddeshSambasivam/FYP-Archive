@@ -14,7 +14,7 @@ from dso.test.generate_test_data import CONFIG_TRAINING_OVERRIDE
 @pytest.fixture
 def model():
     config = load_config()
-    config["experiment"]["logdir"] = None # Turn off saving results
+    config["experiment"]["logdir"] = None  # Turn off saving results
     return DeepSymbolicOptimizer(config)
 
 
@@ -27,17 +27,15 @@ def cached_results(model):
     return results
 
 
-@pytest.mark.parametrize("config", ["config/config_regression.json",
-                                    "config/config_control.json"])
-
+@pytest.mark.parametrize(
+    "config", ["config/config_regression.json", "config/config_control.json"]
+)
 def test_task(model, config):
     """Test that Tasks do not crash for various configs."""
     config = load_config(config)
-    config["experiment"]["logdir"] = None # Turn off saving results
+    config["experiment"]["logdir"] = None  # Turn off saving results
     model.set_config(config)
-    model.config_training.update({"n_samples" : 10,
-                                  "batch_size" : 5
-                                  })
+    model.config_training.update({"n_samples": 10, "batch_size": 5})
     model.train()
 
 
@@ -46,7 +44,7 @@ def test_model_parity(model, cached_results, config):
     """Compare results to last"""
 
     config = load_config(config)
-    config["experiment"]["logdir"] = None # Turn off saving results
+    config["experiment"]["logdir"] = None  # Turn off saving results
     model.set_config(config)
     model.config_training.update(CONFIG_TRAINING_OVERRIDE)
     model.train()

@@ -8,30 +8,39 @@ import gym
 
 import dso.task.control.utils as U
 
-DSP_DATA_ROOT = "." #../data"
-DSO_DATA_ROOT = "./dso/task/regression/data" #"../../regression/data"
+DSP_DATA_ROOT = "."  # ../data"
+DSO_DATA_ROOT = "./dso/task/regression/data"  # "../../regression/data"
 REGRESSION_SEED_SHIFT = int(2e6)
 
 
 @click.command()
-@click.option("--env", type=str, default="LunarLanderContinuous-v2", help="Name of environment to sample")
-@click.option("--n_episodes", type=int, default=1000, help="Number of episodes to sample.")
-@click.option("--n_samples", type=int, default=10000, help="Number of transitions to save.")
-def main(env,  n_episodes, n_samples):
+@click.option(
+    "--env",
+    type=str,
+    default="LunarLanderContinuous-v2",
+    help="Name of environment to sample",
+)
+@click.option(
+    "--n_episodes", type=int, default=1000, help="Number of episodes to sample."
+)
+@click.option(
+    "--n_samples", type=int, default=10000, help="Number of transitions to save."
+)
+def main(env, n_episodes, n_samples):
 
     env_name = env
 
     # Make gym environment
     env = gym.make(env_name)
     if "Bullet" in env_name:
-       env = U.TimeFeatureWrapper(env)
+        env = U.TimeFeatureWrapper(env)
 
-    #Load model
+    # Load model
     U.load_default_model(env_name)
 
     for i in range(n_episodes):
         env.seed(i + REGRESSION_SEED_SHIFT)
-        obs=env.reset()
+        obs = env.reset()
         done = False
         obs_list = []
         action_list = []
@@ -53,7 +62,7 @@ def main(env,  n_episodes, n_samples):
     np.savez(path, data)
 
     # Save randomly subset as CSV
-    np.random.seed(0) # For reproducibility
+    np.random.seed(0)  # For reproducibility
     rows_to_keep = np.random.choice(data.shape[0], n_samples, replace=False)
     data = data[rows_to_keep, :]
     path = os.path.join(DSO_DATA_ROOT, env_name + ".csv")
@@ -62,5 +71,3 @@ def main(env,  n_episodes, n_samples):
 
 if __name__ == "__main__":
     main()
-
-

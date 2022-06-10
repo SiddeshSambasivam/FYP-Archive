@@ -56,9 +56,7 @@ def make_state_manager(config):
     state_manager : StateManager
         The StateManager to be used by the Controller.
     """
-    manager_dict = {
-        "hierarchical": HierarchicalStateManager
-    }
+    manager_dict = {"hierarchical": HierarchicalStateManager}
 
     if config is None:
         config = {}
@@ -78,9 +76,15 @@ class HierarchicalStateManager(StateManager):
     observations.
     """
 
-    def __init__(self, observe_parent=True, observe_sibling=True,
-                 observe_action=False, observe_dangling=False, embedding=False,
-                 embedding_size=8):
+    def __init__(
+        self,
+        observe_parent=True,
+        observe_sibling=True,
+        observe_action=False,
+        observe_dangling=False,
+        embedding=False,
+        embedding_size=8,
+    ):
         """
         Parameters
         ----------
@@ -109,8 +113,13 @@ class HierarchicalStateManager(StateManager):
         self.library = Program.library
 
         # Parameter assertions/warnings
-        assert self.observe_action + self.observe_parent + self.observe_sibling + self.observe_dangling > 0, \
-            "Must include at least one observation."
+        assert (
+            self.observe_action
+            + self.observe_parent
+            + self.observe_sibling
+            + self.observe_dangling
+            > 0
+        ), "Must include at least one observation."
 
         self.embedding = embedding
         self.embedding_size = embedding_size
@@ -119,22 +128,26 @@ class HierarchicalStateManager(StateManager):
         super().setup_manager(controller)
         # Create embeddings if needed
         if self.embedding:
-            initializer = tf.random_uniform_initializer(minval=-1.0,
-                                                        maxval=1.0,
-                                                        seed=0)
+            initializer = tf.random_uniform_initializer(minval=-1.0, maxval=1.0, seed=0)
             with tf.variable_scope("embeddings", initializer=initializer):
                 if self.observe_action:
-                    self.action_embeddings = tf.get_variable("action_embeddings",
-                                                             [self.library.n_action_inputs, self.embedding_size],
-                                                             trainable=True)
+                    self.action_embeddings = tf.get_variable(
+                        "action_embeddings",
+                        [self.library.n_action_inputs, self.embedding_size],
+                        trainable=True,
+                    )
                 if self.observe_parent:
-                    self.parent_embeddings = tf.get_variable("parent_embeddings",
-                                                             [self.library.n_parent_inputs, self.embedding_size],
-                                                             trainable=True)
+                    self.parent_embeddings = tf.get_variable(
+                        "parent_embeddings",
+                        [self.library.n_parent_inputs, self.embedding_size],
+                        trainable=True,
+                    )
                 if self.observe_sibling:
-                    self.sibling_embeddings = tf.get_variable("sibling_embeddings",
-                                                              [self.library.n_sibling_inputs, self.embedding_size],
-                                                              trainable=True)
+                    self.sibling_embeddings = tf.get_variable(
+                        "sibling_embeddings",
+                        [self.library.n_sibling_inputs, self.embedding_size],
+                        trainable=True,
+                    )
 
     def get_tensor_input(self, obs):
         observations = []

@@ -25,16 +25,16 @@ else:
 
 
 ALGORITHMS = {
-    'a2c': A2C,
-    'acer': ACER,
-    'acktr': ACKTR,
-    'dqn': DQN,
-    'ddpg': DDPG,
-    'her': HER,
-    'sac': SAC,
-    'ppo2': PPO2,
-    'trpo': TRPO,
-    'td3': TD3
+    "a2c": A2C,
+    "acer": ACER,
+    "acktr": ACKTR,
+    "dqn": DQN,
+    "ddpg": DDPG,
+    "her": HER,
+    "sac": SAC,
+    "ppo2": PPO2,
+    "trpo": TRPO,
+    "td3": TD3,
 }
 
 
@@ -81,11 +81,12 @@ class TimeFeatureWrapper(gym.Wrapper):
         equal to zero. This allow to check that the agent did not overfit this feature,
         learning a deterministic pre-defined sequence of actions.
     """
+
     def __init__(self, env, max_steps=1000, test_mode=False):
         assert isinstance(env.observation_space, gym.spaces.Box)
         # Add a time feature to the observation
         low, high = env.observation_space.low, env.observation_space.high
-        low, high= np.concatenate((low, [0])), np.concatenate((high, [1.]))
+        low, high = np.concatenate((low, [0])), np.concatenate((high, [1.0]))
         env.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
         super(TimeFeatureWrapper, self).__init__(env)
@@ -133,11 +134,12 @@ class RenderEnv(gym.Wrapper):
         self.episode = 0
 
         self.directory = os.path.abspath(save_path)
-        if not os.path.exists(self.directory): os.makedirs(self.directory, exist_ok=True)
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory, exist_ok=True)
 
     def reset(self, **kwargs):
         """Standard wrap of the reset function."""
-        seed = kwargs.pop('seed', None)
+        seed = kwargs.pop("seed", None)
         obs = self.env.reset(**kwargs)
         self.episode += 1
         self.reset_video_recorder(seed)
@@ -158,7 +160,13 @@ class RenderEnv(gym.Wrapper):
             env=self.env,
             base_path=os.path.join(
                 self.directory,
-                '{}.{}.s{}.{}'.format(self.env_name, self.alg, seed, datetime.now().strftime("%Y-%m-%d-%H%M%S"))),
+                "{}.{}.s{}.{}".format(
+                    self.env_name,
+                    self.alg,
+                    seed,
+                    datetime.now().strftime("%Y-%m-%d-%H%M%S"),
+                ),
+            ),
             enabled=True,
         )
         self.video_recorder.capture_frame()
@@ -167,7 +175,9 @@ class RenderEnv(gym.Wrapper):
         """Cleaning up."""
         self.video_recorder.close()
         if self.video_recorder.functional:
-            self.videos.append((self.video_recorder.path, self.video_recorder.metadata_path))
+            self.videos.append(
+                (self.video_recorder.path, self.video_recorder.metadata_path)
+            )
 
     def close(self):
         """Flush all monitor data to disk and close any open rending windows."""
@@ -182,6 +192,6 @@ class RenderEnv(gym.Wrapper):
 
     def _clean_up_metadata(self):
         """Deleting all metadata json files in the directory."""
-        metadata_files = glob(os.path.join(self.directory , "*.json"))
+        metadata_files = glob(os.path.join(self.directory, "*.json"))
         for metadata_file in metadata_files:
             os.remove(metadata_file)

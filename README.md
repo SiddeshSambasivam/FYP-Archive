@@ -13,6 +13,7 @@ _This repository holds all the work for my final year project. (Jan 2022 - Dec 2
     -   Nguyen (Yet to add this dataset)
 
 -   Added benchmark scripts
+-   Added envs for baseline models
 
 ## Development Setup
 

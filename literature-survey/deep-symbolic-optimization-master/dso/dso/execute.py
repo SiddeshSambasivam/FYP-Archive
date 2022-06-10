@@ -4,6 +4,7 @@ except ImportError:
     cyfunc = None
 import array
 
+
 def python_execute(traversal, X):
     """
     Executes the program according to X using Python.
@@ -42,6 +43,7 @@ def python_execute(traversal, X):
     assert False, "Function should never get here!"
     return None
 
+
 def cython_execute(traversal, X):
     """
     Execute cython function using given traversal over input X.
@@ -61,9 +63,7 @@ def cython_execute(traversal, X):
         The result of executing the traversal.
     """
     if len(traversal) > 1:
-        is_input_var = array.array('i', [t.input_var is not None for t in traversal])
+        is_input_var = array.array("i", [t.input_var is not None for t in traversal])
         return cyfunc.execute(X, len(traversal), traversal, is_input_var)
     else:
         return python_execute(traversal, X)
-
-

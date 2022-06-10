@@ -6,22 +6,13 @@ from dso.functions import UNARY_TOKENS, BINARY_TOKENS
 TRIG_TOKENS = ["sin", "cos", "tan", "csc", "sec", "cot"]
 
 # Define inverse tokens
-INVERSE_TOKENS = {
-    "exp" : "log",
-    "neg" : "neg",
-    "inv" : "inv",
-    "sqrt" : "n2"
-}
+INVERSE_TOKENS = {"exp": "log", "neg": "neg", "inv": "inv", "sqrt": "n2"}
 
 # Add inverse trig functions
-INVERSE_TOKENS.update({
-    t : "arc" + t for t in TRIG_TOKENS
-    })
+INVERSE_TOKENS.update({t: "arc" + t for t in TRIG_TOKENS})
 
 # Add reverse
-INVERSE_TOKENS.update({
-    v : k for k, v in INVERSE_TOKENS.items()
-    })
+INVERSE_TOKENS.update({v: k for k, v in INVERSE_TOKENS.items()})
 
 DEBUG = False
 
@@ -31,7 +22,7 @@ def check_inv(ind):
 
     names = [node.name for node in ind]
     for i, name in enumerate(names[:-1]):
-        if name in INVERSE_TOKENS and names[i+1] == INVERSE_TOKENS[name]:
+        if name in INVERSE_TOKENS and names[i + 1] == INVERSE_TOKENS[name]:
             if DEBUG:
                 print("Constrained inverse:", ind)
             return True
@@ -43,11 +34,15 @@ def check_const(ind):
 
     names = [node.name for node in ind]
     for i, name in enumerate(names):
-        if name in UNARY_TOKENS and names[i+1] == "const":
+        if name in UNARY_TOKENS and names[i + 1] == "const":
             if DEBUG:
                 print("Constrained const (unary)", ind)
             return True
-        if name in BINARY_TOKENS and names[i+1] == "const" and names[i+1] == "const":
+        if (
+            name in BINARY_TOKENS
+            and names[i + 1] == "const"
+            and names[i + 1] == "const"
+        ):
             if DEBUG:
                 print(print("Constrained const (binary)", ind))
             return True
@@ -57,10 +52,10 @@ def check_const(ind):
 def check_trig(ind):
     """Returns True if a descendant of a trig operator is another trig
     operator."""
-    
+
     names = [node.name for node in ind]
-    trig_descendant = False # True when current node is a descendant of a trig operator
-    trig_dangling = None # Number of unselected nodes in trig subtree
+    trig_descendant = False  # True when current node is a descendant of a trig operator
+    trig_dangling = None  # Number of unselected nodes in trig subtree
     for i, name in enumerate(names):
         if name in TRIG_TOKENS:
             if trig_descendant:

@@ -7,7 +7,8 @@ import numpy as np
 
 
 Batch = namedtuple(
-    "Batch", ["actions", "obs", "priors", "lengths", "rewards", "on_policy"])
+    "Batch", ["actions", "obs", "priors", "lengths", "rewards", "on_policy"]
+)
 
 
 def make_queue(controller=None, priority=False, capacity=np.inf, seed=0):
@@ -70,7 +71,8 @@ def get_samples(batch, key):
         priors=batch.priors[key],
         lengths=batch.lengths[key],
         rewards=batch.rewards[key],
-        on_policy=batch.on_policy[key])
+        on_policy=batch.on_policy[key],
+    )
     return batch
 
 
@@ -142,7 +144,10 @@ class Queue(object):
             List of sampled items (of length `sample_size`). Each element in the list
             is a tuple: (item, extra_data).
         """
-        idx = self.rng.choice(len(self.heap), sample_size, )
+        idx = self.rng.choice(
+            len(self.heap),
+            sample_size,
+        )
         return [(self.heap[i].item, self.heap[i].extra_data) for i in idx]
 
     def __len__(self):
@@ -153,7 +158,7 @@ class Queue(object):
             yield item
 
     def __repr__(self):
-        return '[' + ', '.join(repr(c) for c in self.heap) + ']'
+        return "[" + ", ".join(repr(c) for c in self.heap) + "]"
 
     def __str__(self):
         return repr(self)
@@ -223,7 +228,8 @@ class UniquePriorityQueue(Queue):
             return
         if len(self.heap) >= self.capacity:
             _, popped_item, _ = heapq.heappushpop(
-                self.heap, ItemContainer(score, item, extra_data))
+                self.heap, ItemContainer(score, item, extra_data)
+            )
             self.unique_items.add(item)
             self.unique_items.remove(popped_item)
         else:
@@ -277,7 +283,7 @@ class UniquePriorityQueue(Queue):
             yield item, extra_data
 
 
-class ProgramQueueMixin():
+class ProgramQueueMixin:
     """A mixin for Queues with additional utilities specific to Batch and
     Program."""
 
@@ -333,8 +339,14 @@ class ProgramQueueMixin():
         lengths = np.array([s.lengths for s in samples], dtype=np.int32)
         rewards = np.array([s.rewards for s in samples], dtype=np.float32)
         on_policy = np.array([s.on_policy for s in samples], dtype=np.bool)
-        batch = Batch(actions=actions, obs=obs, priors=priors,
-                      lengths=lengths, rewards=rewards, on_policy=on_policy)
+        batch = Batch(
+            actions=actions,
+            obs=obs,
+            priors=priors,
+            lengths=lengths,
+            rewards=rewards,
+            on_policy=on_policy,
+        )
         return batch
 
     def to_batch(self):
@@ -349,8 +361,10 @@ class ProgramQueueMixin():
         Controller."""
 
         if self.controller is None:
-            raise RuntimeError("Cannot compute probabilities. This Queue does \
-                not have a Controller.")
+            raise RuntimeError(
+                "Cannot compute probabilities. This Queue does \
+                not have a Controller."
+            )
         return self.controller.compute_probs(self.to_batch())
 
     def get_rewards(self):

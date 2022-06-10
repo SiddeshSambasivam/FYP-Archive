@@ -117,39 +117,43 @@ class HierarchicalTask(Task):
     (unselected) nodes.
     """
 
-    OBS_DIM = 4 # action, parent, sibling, dangling
+    OBS_DIM = 4  # action, parent, sibling, dangling
 
     def __init__(self):
         super(Task).__init__()
 
     def get_next_obs(self, actions, obs):
 
-        dangling = obs[:, 3] # Shape of obs: (?, 4)
-        action = actions[:, -1] # Current action
+        dangling = obs[:, 3]  # Shape of obs: (?, 4)
+        action = actions[:, -1]  # Current action
         lib = self.library
 
         # Compute parents and siblings
-        parent, sibling = parents_siblings(actions,
-                                           arities=lib.arities,
-                                           parent_adjust=lib.parent_adjust,
-                                           empty_parent=lib.EMPTY_PARENT,
-                                           empty_sibling=lib.EMPTY_SIBLING)
+        parent, sibling = parents_siblings(
+            actions,
+            arities=lib.arities,
+            parent_adjust=lib.parent_adjust,
+            empty_parent=lib.EMPTY_PARENT,
+            empty_sibling=lib.EMPTY_SIBLING,
+        )
 
         # Update dangling with (arity - 1) for each element in action
         dangling += lib.arities[action] - 1
 
-        prior = self.prior(actions, parent, sibling, dangling) # (?, n_choices)
+        prior = self.prior(actions, parent, sibling, dangling)  # (?, n_choices)
 
         # Reset initial values when tree completes
-        if Program.n_objects > 1: # NOTE: do this to save computuational cost only when n_objects > 1
-            finished = (dangling == 0)
+        if (
+            Program.n_objects > 1
+        ):  # NOTE: do this to save computuational cost only when n_objects > 1
+            finished = dangling == 0
             dangling[finished] = 1
             action[finished] = lib.EMPTY_ACTION
             parent[finished] = lib.EMPTY_PARENT
             sibling[finished] = lib.EMPTY_SIBLING
             prior[finished] = self.prior.initial_prior()
 
-        next_obs = np.stack([action, parent, sibling, dangling], axis=1) # (?, 4)
+        next_obs = np.stack([action, parent, sibling, dangling], axis=1)  # (?, 4)
         next_obs = next_obs.astype(np.float32)
         return next_obs, prior
 
@@ -162,11 +166,15 @@ class HierarchicalTask(Task):
         self.prior = prior
 
         # Order of observations: action, parent, sibling, dangling
-        initial_obs = np.array([self.library.EMPTY_ACTION,
-                                self.library.EMPTY_PARENT,
-                                self.library.EMPTY_SIBLING,
-                                1],
-                               dtype=np.float32)
+        initial_obs = np.array(
+            [
+                self.library.EMPTY_ACTION,
+                self.library.EMPTY_PARENT,
+                self.library.EMPTY_SIBLING,
+                1,
+            ],
+            dtype=np.float32,
+        )
         return initial_obs
 
 
@@ -205,15 +213,18 @@ def make_task(task_type, **config_task):
 
     if task_type == "regression":
         from dso.task.regression.regression import RegressionTask
+
         task_class = RegressionTask
     elif task_type == "control":
         from dso.task.control.control import ControlTask
+
         task_class = ControlTask
     else:
         # Custom task import
         task_class = import_custom_source(task_type)
-        assert issubclass(task_class, Task), \
-            "Custom task {} must subclass dso.task.Task.".format(task_class)
+        assert issubclass(
+            task_class, Task
+        ), "Custom task {} must subclass dso.task.Task.".format(task_class)
 
     task = task_class(**config_task)
     return task

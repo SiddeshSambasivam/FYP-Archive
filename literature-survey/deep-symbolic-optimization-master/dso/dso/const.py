@@ -10,9 +10,9 @@ def make_const_optimizer(name, **kwargs):
     """Returns a ConstOptimizer given a name and keyword arguments"""
 
     const_optimizers = {
-        None : Dummy,
-        "dummy" : Dummy,
-        "scipy" : ScipyMinimize,
+        None: Dummy,
+        "dummy": Dummy,
+        "scipy": ScipyMinimize,
     }
 
     return const_optimizers[name](**kwargs)
@@ -20,10 +20,9 @@ def make_const_optimizer(name, **kwargs):
 
 class ConstOptimizer(object):
     """Base class for constant optimizer"""
-    
+
     def __init__(self, **kwargs):
         self.kwargs = kwargs
-
 
     def __call__(self, f, x0):
         """
@@ -55,10 +54,9 @@ class Dummy(ConstOptimizer):
     def __init__(self, **kwargs):
         super(Dummy, self).__init__(**kwargs)
 
-    
     def __call__(self, f, x0):
         return x0
-        
+
 
 class ScipyMinimize(ConstOptimizer):
     """SciPy's non-linear optimizer"""
@@ -66,9 +64,8 @@ class ScipyMinimize(ConstOptimizer):
     def __init__(self, **kwargs):
         super(ScipyMinimize, self).__init__(**kwargs)
 
-    
     def __call__(self, f, x0):
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             opt_result = partial(minimize, **self.kwargs)(f, x0)
-        x = opt_result['x']
+        x = opt_result["x"]
         return x

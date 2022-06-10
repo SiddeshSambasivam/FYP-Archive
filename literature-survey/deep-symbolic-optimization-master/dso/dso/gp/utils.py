@@ -81,7 +81,9 @@ def staticLimit(key, max_value):
                     new_inds[i] = keep_inds.pop(pop_index)
 
             return new_inds
+
         return wrapper
+
     return decorator
 
 
@@ -109,7 +111,7 @@ def rename_token(pset, old_name, new_name):
     pset.mapping[new_name].name = new_name
     pset.mapping[new_name].value = new_name
     del pset.mapping[old_name]
-            
+
     return pset
 
 
@@ -127,20 +129,19 @@ def create_primitive_set(lib):
     pset.renameArguments(**rename_kwargs)
 
     for i, token in enumerate(lib.tokens):
-        # Primitives MUST have arity > 0. Deap will error out otherwise. 
+        # Primitives MUST have arity > 0. Deap will error out otherwise.
         if token.arity > 0:
             pset.addPrimitive(None, token.arity, name=i)
         elif token.function is not None:
             # A zero-arity function, e.g. const or 3.14. This is a terminal, but not an input value like x1.
 
-        
-            # We are forced to use a string. Add a t to make it easier to debug naming. 
+            # We are forced to use a string. Add a t to make it easier to debug naming.
             tname = "t{}".format(i)
             # We don't really care about what is in each terminal since they are place holders within deap.
             # So, we set value to None. Name is all we need here since Program will fill in any values for us later.
             pset.addTerminal(None, name=tname)
 
-            # `addTerminal` requires terminal names to be strings. Change back to int. 
+            # `addTerminal` requires terminal names to be strings. Change back to int.
             pset = rename_token(pset, tname, i)
 
     return pset
@@ -151,7 +152,8 @@ def individual_to_dso_aps(individual, library):
 
     actions = np.array([[t.name for t in individual]], dtype=np.int32)
     parent, sibling = jit_parents_siblings_at_once(
-        actions, arities=library.arities, parent_adjust=library.parent_adjust)
+        actions, arities=library.arities, parent_adjust=library.parent_adjust
+    )
     return actions, parent, sibling
 
 
@@ -193,9 +195,9 @@ def DEAP_to_padded_tokens(individual, max_length):
         The tokens corresponding to the individual.
     """
 
-    actions = DEAP_to_tokens(individual) # Convert to unpadded actions
+    actions = DEAP_to_tokens(individual)  # Convert to unpadded actions
     actions_padded = np.zeros(max_length, dtype=np.int32)
-    actions_padded[:len(actions)] = actions
+    actions_padded[: len(actions)] = actions
     return actions_padded
 
 

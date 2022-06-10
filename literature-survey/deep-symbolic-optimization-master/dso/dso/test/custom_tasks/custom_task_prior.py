@@ -19,17 +19,19 @@ class CustomTask(HierarchicalTask):
         self.param = param
 
         # Create a Library
-        tokens = create_tokens(n_input_var=1,
-                               function_set=["add", "sin"],
-                               protected=False,
-                               decision_tree_threshold_set=None)
+        tokens = create_tokens(
+            n_input_var=1,
+            function_set=["add", "sin"],
+            protected=False,
+            decision_tree_threshold_set=None,
+        )
         self.library = Library(tokens)
 
         self.stochastic = False
         self.name = "dummy"
 
     def reward_function(self, p):
-        r = 0.
+        r = 0.0
         return r
 
     def evaluate(self, p):
@@ -38,10 +40,9 @@ class CustomTask(HierarchicalTask):
 
 
 class CustomPrior(Prior):
-
     def __init__(self, library, param):
         Prior.__init__(self, library)
-        #Just check whether the prior parameter got lost for some reason
+        # Just check whether the prior parameter got lost for some reason
         assert param == "test"
 
     def __call__(self, actions, parent, sibling, dangling):

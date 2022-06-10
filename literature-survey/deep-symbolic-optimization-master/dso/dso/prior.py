@@ -6,10 +6,14 @@ from collections import defaultdict
 
 from dso.library import TokenNotFoundError
 from dso.subroutines import ancestors
-from dso.subroutines import jit_check_constraint_violation, \
-        jit_check_constraint_violation_descendant_with_target_tokens, \
-        jit_check_constraint_violation_descendant_no_target_tokens, \
-        jit_check_constraint_violation_uchild, get_position, get_mask
+from dso.subroutines import (
+    jit_check_constraint_violation,
+    jit_check_constraint_violation_descendant_with_target_tokens,
+    jit_check_constraint_violation_descendant_no_target_tokens,
+    jit_check_constraint_violation_uchild,
+    get_position,
+    get_mask,
+)
 from dso.program import Program
 from dso.language_model import LanguageModelPrior as LM
 from dso.utils import import_custom_source
@@ -19,16 +23,16 @@ def make_prior(library, config_prior):
     """Factory function for JointPrior object."""
 
     prior_dict = {
-        "relational" : RelationalConstraint,
-        "length" : LengthConstraint,
-        "repeat" : RepeatConstraint,
-        "inverse" : InverseUnaryConstraint,
-        "trig" : TrigConstraint,
-        "const" : ConstConstraint,
-        "no_inputs" : NoInputsConstraint,
-        "soft_length" : SoftLengthPrior,
-        "uniform_arity" : UniformArityPrior,
-        "language_model" : LanguageModelPrior
+        "relational": RelationalConstraint,
+        "length": LengthConstraint,
+        "repeat": RepeatConstraint,
+        "inverse": InverseUnaryConstraint,
+        "trig": TrigConstraint,
+        "const": ConstConstraint,
+        "no_inputs": NoInputsConstraint,
+        "soft_length": SoftLengthPrior,
+        "uniform_arity": UniformArityPrior,
+        "language_model": LanguageModelPrior,
     }
 
     count_constraints = config_prior.pop("count_constraints", False)
@@ -47,7 +51,7 @@ def make_prior(library, config_prior):
         for single_prior_args in prior_args:
             # Attempt to build the Prior. Any Prior can fail if it references a
             # Token not in the Library.
-            prior_is_enabled = single_prior_args.pop('on', False)
+            prior_is_enabled = single_prior_args.pop("on", False)
             if prior_is_enabled:
                 try:
                     prior = prior_class(library, **single_prior_args)
@@ -61,9 +65,12 @@ def make_prior(library, config_prior):
 
             # Add warning context
             if warn_message is not None:
-                warn_message = "Skipping invalid '{}' with arguments {}. " \
-                    "Reason: {}" \
-                    .format(prior_class.__name__, single_prior_args, warn_message)
+                warn_message = (
+                    "Skipping invalid '{}' with arguments {}. "
+                    "Reason: {}".format(
+                        prior_class.__name__, single_prior_args, warn_message
+                    )
+                )
                 warn_messages.append(warn_message)
 
             # Add the Prior if there are no warnings
@@ -80,7 +87,7 @@ def make_prior(library, config_prior):
     return joint_prior
 
 
-class JointPrior():
+class JointPrior:
     """A collection of joint Priors."""
 
     def __init__(self, library, priors, count_constraints=False):
@@ -100,11 +107,12 @@ class JointPrior():
         self.library = library
         self.L = self.library.L
         self.priors = priors
-        assert all([prior.library is library for prior in priors]), \
-            "All Libraries must be identical."
+        assert all(
+            [prior.library is library for prior in priors]
+        ), "All Libraries must be identical."
 
         # Name the priors, e.g. RepeatConstraint-0
-        counts = defaultdict(lambda : -1)
+        counts = defaultdict(lambda: -1)
         self.names = []
         for prior in self.priors:
             name = prior.__class__.__name__
@@ -113,12 +121,14 @@ class JointPrior():
 
         # Initialize variables for constraint count report
         self.do_count = count_constraints
-        self.constraint_indices = [i for i, prior in enumerate(self.priors) if isinstance(prior, Constraint)]
+        self.constraint_indices = [
+            i for i, prior in enumerate(self.priors) if isinstance(prior, Constraint)
+        ]
         self.constraint_counts = [0] * len(self.constraint_indices)
         self.total_constraints = 0
         self.total_tokens = 0
 
-        self.requires_parents_siblings = True 
+        self.requires_parents_siblings = True
 
         self.describe()
 
@@ -134,14 +144,16 @@ class JointPrior():
         ind_priors = [zero_prior.copy() for _ in range(len(self.priors))]
         for i in range(len(self.priors)):
             ind_priors[i] += self.priors[i](actions, parent, sibling, dangling)
-        combined_prior = sum(ind_priors) + zero_prior 
+        combined_prior = sum(ind_priors) + zero_prior
 
         # Count number of constrained tokens per prior
         if self.do_count:
-            mask = dangling > 0 
+            mask = dangling > 0
             self.total_tokens += mask.sum() * actions.shape[1]
             for i in self.constraint_indices:
-                self.constraint_counts[i] += np.count_nonzero(ind_priors[i][mask] == -np.inf)
+                self.constraint_counts[i] += np.count_nonzero(
+                    ind_priors[i][mask] == -np.inf
+                )
             self.total_constraints += np.count_nonzero(combined_prior[mask] == -np.inf)
 
         return combined_prior
@@ -151,8 +163,14 @@ class JointPrior():
             return
         print("Constraint counts per prior:")
         for i, count in zip(self.constraint_indices, self.constraint_counts):
-            print("{}: {} ({:%})".format(self.names[i], count, count / self.total_tokens))
-        print("All constraints: {} ({:%})".format(self.total_constraints, self.total_constraints / self.total_tokens))
+            print(
+                "{}: {} ({:%})".format(self.names[i], count, count / self.total_tokens)
+            )
+        print(
+            "All constraints: {} ({:%})".format(
+                self.total_constraints, self.total_constraints / self.total_tokens
+            )
+        )
 
     def describe(self):
         message = "\n".join(prior.describe() for prior in self.priors)
@@ -173,25 +191,26 @@ class JointPrior():
         """
 
         B, T = actions.shape
-        zero_prior = np.zeros((B, T, self.L), dtype=np.float32) # (batch, time, L)
-        ind_priors = [zero_prior.copy() for _ in range(len(self.priors))] # i x (batch, time, L)
+        zero_prior = np.zeros((B, T, self.L), dtype=np.float32)  # (batch, time, L)
+        ind_priors = [
+            zero_prior.copy() for _ in range(len(self.priors))
+        ]  # i x (batch, time, L)
 
         # Set initial prior
         # Note: intial_prior() is already a combined prior, so we just set the
         # first individual prior, ind_priors[0].
-        initial_prior = self.initial_prior() # Shape (L,)
-        ind_priors[0][:, 0, :] = initial_prior # Broadcast to (batch, L)
+        initial_prior = self.initial_prior()  # Shape (L,)
+        ind_priors[0][:, 0, :] = initial_prior  # Broadcast to (batch, L)
 
         dangling = np.ones(B)
-        for t in range(1, T): # For each time step
+        for t in range(1, T):  # For each time step
             # Update dangling based on previously sampled token
             dangling += self.library.arities[actions[:, (t - 1)]] - 1
-            for i in range(len(self.priors)): # For each Prior
+            for i in range(len(self.priors)):  # For each Prior
                 # Compute the ith Prior at time step t
-                prior = self.priors[i](actions[:, :t],
-                                       parent[:, t],
-                                       sibling[:, t],
-                                       dangling) # Shape (batch, L)
+                prior = self.priors[i](
+                    actions[:, :t], parent[:, t], sibling[:, t], dangling
+                )  # Shape (batch, L)
                 ind_priors[i][:, t, :] += prior
 
         # Combine all Priors
@@ -200,7 +219,7 @@ class JointPrior():
         return combined_prior
 
 
-class Prior():
+class Prior:
     """Abstract class whose call method return logits."""
 
     def __init__(self, library):
@@ -254,7 +273,7 @@ class Prior():
         """
 
         raise NotImplementedError
-        
+
     def describe(self):
         """Describe the Prior."""
 
@@ -290,58 +309,68 @@ class Constraint(Prior):
             either 0.0 or -np.inf.
         """
         prior = np.zeros((mask.shape[0], self.L), dtype=np.float32)
-        
+
         for t in tokens:
             prior[mask, t] = self.mask_val
         return prior
-    
+
     def is_violated(self, actions, parent, sibling):
         """
-        Given a set of actions, tells us if a prior constraint has been violated 
-        post hoc. 
-        
+        Given a set of actions, tells us if a prior constraint has been violated
+        post hoc.
+
         This is a generic version that will run using the __call__ function so that one
-        does not have to write a function twice for both DSO and Deap. 
-        
+        does not have to write a function twice for both DSO and Deap.
+
         >>>HOWEVER<<<
-        
+
         Using this function is less optimal than writing a variant for Deap. So...
-        
+
         If you create a constraint and find you use if often with Deap, you should gp ahead anf
-        write the optimal version. 
+        write the optimal version.
 
         Returns
         -------
         violated : Bool
         """
-        caller          = inspect.getframeinfo(inspect.stack()[1][0])
-        
-        warnings.warn("{} ({}) {} : Using a slower version of constraint for Deap. You should write your own.".format(caller.filename, caller.lineno, type(self).__name__))
-        
-        assert len(actions.shape) == 2, "Only takes in one action at a time since this is how Deap will use it."
-        assert actions.shape[0] == 1, "Only takes in one action at a time since this is how Deap will use it."
-        
-        self.mask_val   = 1.0
-        dangling        = np.ones((1), dtype=np.int32)
-        
-        # For each step in time, get the prior                                
+        caller = inspect.getframeinfo(inspect.stack()[1][0])
+
+        warnings.warn(
+            "{} ({}) {} : Using a slower version of constraint for Deap. You should write your own.".format(
+                caller.filename, caller.lineno, type(self).__name__
+            )
+        )
+
+        assert (
+            len(actions.shape) == 2
+        ), "Only takes in one action at a time since this is how Deap will use it."
+        assert (
+            actions.shape[0] == 1
+        ), "Only takes in one action at a time since this is how Deap will use it."
+
+        self.mask_val = 1.0
+        dangling = np.ones((1), dtype=np.int32)
+
+        # For each step in time, get the prior
         for t in range(actions.shape[1]):
-            dangling    += self.library.arities[actions[:,t]] - 1   
-            priors      = self.__call__(actions[:,:t], parent[:,t], sibling[:,t], dangling)
-            
+            dangling += self.library.arities[actions[:, t]] - 1
+            priors = self.__call__(
+                actions[:, :t], parent[:, t], sibling[:, t], dangling
+            )
+
             # Does our action conflict with this prior?
-            if priors[0,actions[0,t]]:
+            if priors[0, actions[0, t]]:
                 return True
-             
+
         return False
-    
+
     def test_is_violated(self, actions, parent, sibling):
         r"""
-            This allows one to call the generic version of "is_violated" for testing purposes
-            from the derived classes even if they have an optimized version. 
+        This allows one to call the generic version of "is_violated" for testing purposes
+        from the derived classes even if they have an optimized version.
         """
         return Constraint.is_violated(self, actions, parent, sibling)
-    
+
 
 class RelationalConstraint(Constraint):
     """
@@ -373,9 +402,11 @@ class RelationalConstraint(Constraint):
     def __call__(self, actions, parent, sibling, dangling):
 
         if self.relationship == "descendant":
-            mask = ancestors(actions=actions,
-                             arities=self.library.arities,
-                             ancestor_tokens=self.effectors)
+            mask = ancestors(
+                actions=actions,
+                arities=self.library.arities,
+                ancestor_tokens=self.effectors,
+            )
             prior = self.make_constraint(mask, self.targets)
 
         elif self.relationship == "child":
@@ -395,26 +426,30 @@ class RelationalConstraint(Constraint):
 
         elif self.relationship == "uchild":
             # Case 1: parent is a unary effector
-            unary_effectors = np.intersect1d(self.effectors,
-                                             self.library.unary_tokens)
+            unary_effectors = np.intersect1d(self.effectors, self.library.unary_tokens)
             adj_unary_effectors = self.library.parent_adjust[unary_effectors]
             mask = np.isin(parent, adj_unary_effectors)
             # Case 2: sibling is a target and parent is an effector
             adj_effectors = self.library.parent_adjust[self.effectors]
-            mask += np.logical_and(np.isin(sibling, self.targets),
-                                   np.isin(parent, adj_effectors))
+            mask += np.logical_and(
+                np.isin(sibling, self.targets), np.isin(parent, adj_effectors)
+            )
             prior = self.make_constraint(mask, [self.targets])
 
         elif self.relationship == "lchild":
             parents = self.effectors
             adj_parents = self.library.parent_adjust[parents]
-            mask = np.logical_and(np.isin(parent, adj_parents), np.equal(sibling, self.L))
+            mask = np.logical_and(
+                np.isin(parent, adj_parents), np.equal(sibling, self.L)
+            )
             prior = self.make_constraint(mask, self.targets)
 
         elif self.relationship == "rchild":
             parents = self.effectors
             adj_parents = self.library.parent_adjust[parents]
-            mask = np.logical_and(np.isin(parent, adj_parents), np.less(sibling, self.L))
+            mask = np.logical_and(
+                np.isin(parent, adj_parents), np.less(sibling, self.L)
+            )
             prior = self.make_constraint(mask, self.targets)
 
         return prior
@@ -423,24 +458,41 @@ class RelationalConstraint(Constraint):
 
         if self.relationship == "descendant":
             violated = jit_check_constraint_violation_descendant_with_target_tokens(
-                actions, self.targets, self.effectors, self.library.binary_tokens, self.library.unary_tokens)
+                actions,
+                self.targets,
+                self.effectors,
+                self.library.binary_tokens,
+                self.library.unary_tokens,
+            )
 
         elif self.relationship == "child":
             parents = self.effectors
             adj_parents = self.library.parent_adjust[parents]
-            violated = jit_check_constraint_violation(actions, self.targets, parent, adj_parents)
+            violated = jit_check_constraint_violation(
+                actions, self.targets, parent, adj_parents
+            )
 
         elif self.relationship == "sibling":
-            violated = jit_check_constraint_violation(actions, self.targets, sibling, self.effectors)
+            violated = jit_check_constraint_violation(
+                actions, self.targets, sibling, self.effectors
+            )
             if not violated:
-                violated = jit_check_constraint_violation(actions, self.effectors, sibling, self.targets)
+                violated = jit_check_constraint_violation(
+                    actions, self.effectors, sibling, self.targets
+                )
 
         elif self.relationship == "uchild":
             unary_effectors = np.intersect1d(self.effectors, self.library.unary_tokens)
             adj_unary_effectors = self.library.parent_adjust[unary_effectors]
             adj_effectors = self.library.parent_adjust[self.effectors]
-            violated = jit_check_constraint_violation_uchild(actions, parent, sibling, self.targets, 
-                                                     adj_unary_effectors, adj_effectors)
+            violated = jit_check_constraint_violation_uchild(
+                actions,
+                parent,
+                sibling,
+                self.targets,
+                adj_unary_effectors,
+                adj_effectors,
+            )
 
         return violated
 
@@ -448,8 +500,9 @@ class RelationalConstraint(Constraint):
         message = []
         if self.relationship in ["child", "descendant", "uchild", "lchild", "rchild"]:
             if np.isin(self.effectors, self.library.terminal_tokens).any():
-                message = "{} relationship cannot have terminal effectors." \
-                          .format(self.relationship.capitalize())
+                message = "{} relationship cannot have terminal effectors.".format(
+                    self.relationship.capitalize()
+                )
                 return message
         if len(self.targets) == 0:
             message = "There are no target Tokens."
@@ -464,15 +517,16 @@ class RelationalConstraint(Constraint):
         targets = ", ".join([self.library.names[t] for t in self.targets])
         effectors = ", ".join([self.library.names[t] for t in self.effectors])
         relationship = {
-            "child" : "a child",
-            "sibling" : "a sibling",
-            "descendant" : "a descendant",
-            "uchild" : "the only unique child",
-            "lchild" : "the left child",
-            "rchild" : "the right child"
+            "child": "a child",
+            "sibling": "a sibling",
+            "descendant": "a descendant",
+            "uchild": "the only unique child",
+            "lchild": "the left child",
+            "rchild": "the right child",
         }[self.relationship]
-        message = "{}: [{}] cannot be {} of [{}]." \
-                  .format(self.__class__.__name__, targets, relationship, effectors)
+        message = "{}: [{}] cannot be {} of [{}].".format(
+            self.__class__.__name__, targets, relationship, effectors
+        )
         return message
 
 
@@ -483,16 +537,22 @@ class TrigConstraint(RelationalConstraint):
     def __init__(self, library):
         targets = library.trig_tokens
         effectors = library.trig_tokens
-        super(TrigConstraint, self).__init__(library=library,
-                                             targets=targets,
-                                             effectors=effectors,
-                                             relationship="descendant")
-        
+        super(TrigConstraint, self).__init__(
+            library=library,
+            targets=targets,
+            effectors=effectors,
+            relationship="descendant",
+        )
+
     def is_violated(self, actions, parent, sibling):
-        
+
         # Call a slightly faster descendant computation since target is the same as effectors
-        return jit_check_constraint_violation_descendant_no_target_tokens(\
-                actions, self.effectors, self.library.binary_tokens, self.library.unary_tokens)
+        return jit_check_constraint_violation_descendant_no_target_tokens(
+            actions,
+            self.effectors,
+            self.library.binary_tokens,
+            self.library.unary_tokens,
+        )
 
 
 class ConstConstraint(RelationalConstraint):
@@ -501,13 +561,11 @@ class ConstConstraint(RelationalConstraint):
 
     def __init__(self, library):
         targets = library.const_token
-        effectors = np.concatenate([library.unary_tokens,
-                                    library.binary_tokens])
+        effectors = np.concatenate([library.unary_tokens, library.binary_tokens])
 
-        super(ConstConstraint, self).__init__(library=library,
-                                              targets=targets,
-                                              effectors=effectors,
-                                              relationship="uchild")
+        super(ConstConstraint, self).__init__(
+            library=library, targets=targets, effectors=effectors, relationship="uchild"
+        )
 
 
 class NoInputsConstraint(Constraint):
@@ -521,8 +579,10 @@ class NoInputsConstraint(Constraint):
 
     def validate(self):
         if len(self.library.float_tokens) == 0:
-            message = "All terminal tokens are input variables, so all" \
+            message = (
+                "All terminal tokens are input variables, so all"
                 "sequences will have an input variable."
+            )
             return message
         return None
 
@@ -530,8 +590,9 @@ class NoInputsConstraint(Constraint):
         # Constrain when:
         # 1) the expression would end if a terminal is chosen and
         # 2) there are no input variables
-        mask = (dangling == 1) & \
-               (np.sum(np.isin(actions, self.library.input_tokens), axis=1) == 0)
+        mask = (dangling == 1) & (
+            np.sum(np.isin(actions, self.library.input_tokens), axis=1) == 0
+        )
         prior = self.make_constraint(mask, self.library.float_tokens)
         return prior
 
@@ -541,7 +602,9 @@ class NoInputsConstraint(Constraint):
         return bool(np.isin(tokens, actions).sum() == 0)
 
     def describe(self):
-        message = "{}: Sequences contain at least one input variable Token.".format(self.__class__.__name__)
+        message = "{}: Sequences contain at least one input variable Token.".format(
+            self.__class__.__name__
+        )
         return message
 
 
@@ -556,10 +619,12 @@ class InverseUnaryConstraint(Constraint):
         for target, effector in library.inverse_tokens.items():
             targets = [target]
             effectors = [effector]
-            prior = RelationalConstraint(library=library,
-                                         targets=targets,
-                                         effectors=effectors,
-                                         relationship="child")
+            prior = RelationalConstraint(
+                library=library,
+                targets=targets,
+                effectors=effectors,
+                relationship="child",
+            )
             self.priors.append(prior)
 
     def validate(self):
@@ -569,7 +634,9 @@ class InverseUnaryConstraint(Constraint):
         return None
 
     def __call__(self, actions, parent, sibling, dangling):
-        prior = sum([prior(actions, parent, sibling, dangling) for prior in self.priors])
+        prior = sum(
+            [prior(actions, parent, sibling, dangling) for prior in self.priors]
+        )
         return prior
 
     def is_violated(self, actions, parent, sibling):
@@ -604,19 +671,28 @@ class RepeatConstraint(Constraint):
         """
 
         Prior.__init__(self, library)
-        assert min_ is not None or max_ is not None, \
-            "{}: At least one of (min_, max_) must not be None.".format(self.__class__.__name__)
+        assert (
+            min_ is not None or max_ is not None
+        ), "{}: At least one of (min_, max_) must not be None.".format(
+            self.__class__.__name__
+        )
         self.min = min_
         self.max = max_
         self.n_objects = Program.n_objects
         self.tokens = library.actionize(tokens)
 
-        assert min_ is None, "{}: Repeat minimum constraints are not yet " \
-            "supported. This requires knowledge of length constraints.".format(self.__class__.__name__)
+        assert min_ is None, (
+            "{}: Repeat minimum constraints are not yet "
+            "supported. This requires knowledge of length constraints.".format(
+                self.__class__.__name__
+            )
+        )
 
     def __call__(self, actions, parent, sibling, dangling):
         if self.n_objects > 1:
-            _, i_batch = get_position(actions, self.library.arities, n_objects=self.n_objects)
+            _, i_batch = get_position(
+                actions, self.library.arities, n_objects=self.n_objects
+            )
             actions = np.copy(actions)
             mask = get_mask(i_batch, actions.shape[1])
             actions[mask == 0] = -1
@@ -637,14 +713,17 @@ class RepeatConstraint(Constraint):
     def describe(self):
         names = ", ".join([self.library.names[t] for t in self.tokens])
         if self.min is None:
-            message = "{}: [{}] cannot occur more than {} times."\
-                .format(self.__class__.__name__, names, self.max)
+            message = "{}: [{}] cannot occur more than {} times.".format(
+                self.__class__.__name__, names, self.max
+            )
         elif self.max is None:
-            message = "{}: [{}] must occur at least {} times."\
-                .format(self.__class__.__name__, names, self.min)
+            message = "{}: [{}] must occur at least {} times.".format(
+                self.__class__.__name__, names, self.min
+            )
         else:
-            message = "{}: [{}] must occur between {} and {} times."\
-                .format(self.__class__.__name__, names, self.min, self.max)
+            message = "{}: [{}] must occur between {} and {} times.".format(
+                self.__class__.__name__, names, self.min, self.max
+            )
         return message
 
 
@@ -668,10 +747,13 @@ class LengthConstraint(Constraint):
         self.max = max_
         self.n_objects = Program.n_objects
         if self.n_objects > 1:
-            assert self.max is not None, "Is max length constraint turned on? Max length constraint is required when n_objects > 1."
+            assert (
+                self.max is not None
+            ), "Is max length constraint turned on? Max length constraint is required when n_objects > 1."
 
-        assert min_ is not None or max_ is not None, \
-            "At least one of (min_, max_) must not be None."
+        assert (
+            min_ is not None or max_ is not None
+        ), "At least one of (min_, max_) must not be None."
 
     def initial_prior(self):
         prior = Prior.initial_prior(self)
@@ -683,40 +765,38 @@ class LengthConstraint(Constraint):
 
         # Initialize the prior
         prior = self.init_zeros(actions)
-        i = actions.shape[1] - 1 # Current time
+        i = actions.shape[1] - 1  # Current time
 
         if self.n_objects > 1:
             i, _ = get_position(actions, self.library.arities, n_objects=self.n_objects)
 
             if self.max is not None:
                 remaining = self.max - (i + 1)
-                mask = dangling >= remaining - 1 # constrain binary
+                mask = dangling >= remaining - 1  # constrain binary
                 prior += self.make_constraint(mask, self.library.binary_tokens)
-                mask = dangling == remaining # constrain unary
+                mask = dangling == remaining  # constrain unary
                 prior += self.make_constraint(mask, self.library.unary_tokens)
 
             # Constrain terminals when dangling == 1 until selecting the
             # (min_length)th token
             if self.min is not None:
-                mask = np.logical_and((i + 2) < self.min,
-                                        dangling == 1)
+                mask = np.logical_and((i + 2) < self.min, dangling == 1)
                 prior += self.make_constraint(mask, self.library.terminal_tokens)
         else:
             # Never need to constrain max length for first half of expression
             if self.max is not None and (i + 2) >= self.max // 2:
                 remaining = self.max - (i + 1)
                 # assert sum(dangling > remaining) == 0, (dangling, remaining)
-                mask = dangling >= remaining - 1 # Constrain binary
+                mask = dangling >= remaining - 1  # Constrain binary
                 prior += self.make_constraint(mask, self.library.binary_tokens)
-                mask = dangling == remaining # Constrain unary
+                mask = dangling == remaining  # Constrain unary
                 prior += self.make_constraint(mask, self.library.unary_tokens)
 
             # Constrain terminals when dangling == 1 until selecting the
             # (min_length)th token
             if self.min is not None and (i + 2) < self.min:
-                mask = dangling == 1 # Constrain terminals
+                mask = dangling == 1  # Constrain terminals
                 prior += self.make_constraint(mask, self.library.terminal_tokens)
-
 
         return prior
 
@@ -733,9 +813,15 @@ class LengthConstraint(Constraint):
         message = []
         indent = " " * len(self.__class__.__name__) + "  "
         if self.min is not None:
-            message.append("{}: Sequences have minimum length {}.".format(self.__class__.__name__, self.min))
+            message.append(
+                "{}: Sequences have minimum length {}.".format(
+                    self.__class__.__name__, self.min
+                )
+            )
         if self.max is not None:
-            message.append(indent + "Sequences have maximum length {}.".format(self.max))
+            message.append(
+                indent + "Sequences have maximum length {}.".format(self.max)
+            )
         message = "\n".join(message)
         return message
 
@@ -793,26 +879,29 @@ class SoftLengthPrior(Prior):
 
         # Initialize the prior
         prior = self.init_zeros(actions)
-        t = actions.shape[1] # Current time
+        t = actions.shape[1]  # Current time
 
         if self.n_objects > 1:
-            t_batch, _ = get_position(actions, self.library.arities, n_objects=self.n_objects)
+            t_batch, _ = get_position(
+                actions, self.library.arities, n_objects=self.n_objects
+            )
 
             # Adjust the terminal or non-terminal logits
-            logit_adjust = -(t_batch - self.loc) ** 2 / (2 * self.scale)
+            logit_adjust = -((t_batch - self.loc) ** 2) / (2 * self.scale)
 
             # Find indices where we want to decrease p(terminal). Do this when dangling == 1 and t (for that action) < loc
-            idxs = np.logical_and(t_batch < self.loc,
-                                  dangling == 1)
+            idxs = np.logical_and(t_batch < self.loc, dangling == 1)
             prior[idxs] += np.outer(logit_adjust[idxs], self.terminal_mask)
 
             # Find indices where we want to decrease p(non-terminal). Do this when t (for that action) > loc
-            nonterm_idxs = (t_batch > self.loc)
-            prior[nonterm_idxs] += np.outer(logit_adjust[nonterm_idxs], self.nonterminal_mask)
+            nonterm_idxs = t_batch > self.loc
+            prior[nonterm_idxs] += np.outer(
+                logit_adjust[nonterm_idxs], self.nonterminal_mask
+            )
 
         else:
             # Adjustment to terminal or non-terminal logits
-            logit_adjust = -(t - self.loc) ** 2 / (2 * self.scale)
+            logit_adjust = -((t - self.loc) ** 2) / (2 * self.scale)
 
             # Before loc, decrease p(terminal) where dangling == 1
             if t < self.loc:
@@ -854,7 +943,7 @@ class LanguageModelPrior(Prior):
         if actions.shape[1] == 1:
             self.lm.next_state = None
 
-        action = actions[:, -1] # Current action
+        action = actions[:, -1]  # Current action
         prior = self.lm.get_lm_prior(action)
         prior *= self.weight
 
@@ -864,4 +953,3 @@ class LanguageModelPrior(Prior):
         if self.weight is None:
             message = "Need to specify language model arguments."
             return message
-

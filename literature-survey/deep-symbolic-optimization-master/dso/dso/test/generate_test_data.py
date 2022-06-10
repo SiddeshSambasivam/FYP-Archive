@@ -7,10 +7,7 @@ from dso.config import load_config
 
 
 # Shorter config run for parity test
-CONFIG_TRAINING_OVERRIDE = {
-    "n_samples" : 1000,
-    "batch_size" : 100
-}
+CONFIG_TRAINING_OVERRIDE = {"n_samples": 1000, "batch_size": 100}
 
 
 def main():

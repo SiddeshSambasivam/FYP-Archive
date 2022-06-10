@@ -7,7 +7,7 @@ import numpy as np
 import dso.utils as U
 
 
-class Token():
+class Token:
     """
     An arbitrary token or "building block" of a Program object.
 
@@ -46,8 +46,7 @@ class Token():
             assert arity == 0, "Input variables should have arity zero."
 
     def __call__(self, *args):
-        assert self.function is not None, \
-            "Token {} is not callable.".format(self.name)
+        assert self.function is not None, "Token {} is not callable.".format(self.name)
 
         return self.function(*args)
 
@@ -66,12 +65,14 @@ class HardCodedConstant(Token):
     """
 
     def __init__(self, value=None, name=None):
-        assert value is not None, "Constant is not callable with value None. Must provide a floating point number or string of a float."
+        assert (
+            value is not None
+        ), "Constant is not callable with value None. Must provide a floating point number or string of a float."
         assert U.is_float(value)
         value = np.atleast_1d(np.float32(value))
         self.value = value
         if name is None:
-            name = str(self.value[0]) 
+            name = str(self.value[0])
         super().__init__(function=self.function, name=name, arity=0, complexity=1)
 
     def function(self):
@@ -96,8 +97,7 @@ class PlaceholderConstant(Token):
         super().__init__(function=self.function, name="const", arity=0, complexity=1)
 
     def function(self):
-        assert self.value is not None, \
-            "Constant is not callable with value None."
+        assert self.value is not None, "Constant is not callable with value None."
         return self.value
 
     def __repr__(self):
@@ -106,7 +106,7 @@ class PlaceholderConstant(Token):
         return str(self.value[0])
 
 
-class Library():
+class Library:
     """
     Library of Tokens. We use a list of Tokens (instead of set or dict) since
     we so often index by integers given by the Controller.
@@ -132,14 +132,14 @@ class Library():
 
         self.input_tokens = np.array(
             [i for i, t in enumerate(self.tokens) if t.input_var is not None],
-            dtype=np.int32)
-
+            dtype=np.int32,
+        )
 
         def get_tokens_of_arity(arity):
             _tokens = [i for i in range(self.L) if self.arities[i] == arity]
             return np.array(_tokens, dtype=np.int32)
 
-        self.tokens_of_arity = defaultdict(lambda : np.array([], dtype=np.int32))
+        self.tokens_of_arity = defaultdict(lambda: np.array([], dtype=np.int32))
         for arity in self.arities:
             self.tokens_of_arity[arity] = get_tokens_of_arity(arity)
         self.terminal_tokens = self.tokens_of_arity[0]
@@ -161,26 +161,38 @@ class Library():
         trig_names += ["arc" + name for name in trig_names]
 
         self.float_tokens = np.array(
-            [i for i, t in enumerate(self.tokens) if t.arity == 0 and t.input_var is None],
-            dtype=np.int32)
+            [
+                i
+                for i, t in enumerate(self.tokens)
+                if t.arity == 0 and t.input_var is None
+            ],
+            dtype=np.int32,
+        )
         self.trig_tokens = np.array(
             [i for i, t in enumerate(self.tokens) if t.name in trig_names],
-            dtype=np.int32)
+            dtype=np.int32,
+        )
 
         inverse_tokens = {
-            "inv" : "inv",
-            "neg" : "neg",
-            "exp" : "log",
-            "log" : "exp",
-            "sqrt" : "n2",
-            "n2" : "sqrt"
+            "inv": "inv",
+            "neg": "neg",
+            "exp": "log",
+            "log": "exp",
+            "sqrt": "n2",
+            "n2": "sqrt",
         }
-        token_from_name = {t.name : i for i, t in enumerate(self.tokens)}
-        self.inverse_tokens = {token_from_name[k] : token_from_name[v] for k, v in inverse_tokens.items() if k in token_from_name and v in token_from_name}        
+        token_from_name = {t.name: i for i, t in enumerate(self.tokens)}
+        self.inverse_tokens = {
+            token_from_name[k]: token_from_name[v]
+            for k, v in inverse_tokens.items()
+            if k in token_from_name and v in token_from_name
+        }
 
-        self.n_action_inputs = self.L + 1 # Library tokens + empty token
-        self.n_parent_inputs = self.L + 1 - len(self.terminal_tokens) # Parent sub-lib tokens + empty token
-        self.n_sibling_inputs = self.L + 1 # Library tokens + empty token
+        self.n_action_inputs = self.L + 1  # Library tokens + empty token
+        self.n_parent_inputs = (
+            self.L + 1 - len(self.terminal_tokens)
+        )  # Parent sub-lib tokens + empty token
+        self.n_sibling_inputs = self.L + 1  # Library tokens + empty token
         self.EMPTY_ACTION = self.n_action_inputs - 1
         self.EMPTY_PARENT = self.n_parent_inputs - 1
         self.EMPTY_SIBLING = self.n_sibling_inputs - 1
@@ -196,7 +208,9 @@ class Library():
         elif isinstance(val, (int, np.integer)):
             i = val
         else:
-            raise TokenNotFoundError("Library must be indexed by str or int, not {}.".format(type(val)))
+            raise TokenNotFoundError(
+                "Library must be indexed by str or int, not {}.".format(type(val))
+            )
 
         try:
             token = self.tokens[i]
@@ -208,10 +222,12 @@ class Library():
         """Convert inputs to list of Tokens."""
 
         if isinstance(inputs, str):
-            inputs = inputs.split(',')
+            inputs = inputs.split(",")
         elif not isinstance(inputs, list) and not isinstance(inputs, np.ndarray):
             inputs = [inputs]
-        tokens = [input_ if isinstance(input_, Token) else self[input_] for input_ in inputs]
+        tokens = [
+            input_ if isinstance(input_, Token) else self[input_] for input_ in inputs
+        ]
         return tokens
 
     def actionize(self, inputs):
@@ -219,8 +235,7 @@ class Library():
         Tokens in the Library."""
 
         tokens = self.tokenize(inputs)
-        actions = np.array([self.tokens.index(t) for t in tokens],
-                           dtype=np.int32)
+        actions = np.array([self.tokens.index(t) for t in tokens], dtype=np.int32)
         return actions
 
 

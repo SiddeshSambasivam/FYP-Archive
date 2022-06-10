@@ -20,31 +20,46 @@ tools = importlib.import_module(GP_MOD + ".tools")
 algorithms = importlib.import_module(GP_MOD + ".algorithms")
 
 
-class GP():
+class GP:
     """Genetic-programming based symbolic regression class"""
 
-    def __init__(self, dataset, metric="nmse", population_size=1000,
-                 generations=1000, n_samples=None, tournament_size=3,
-                 p_crossover=0.5, p_mutate=0.1,
-                 const_range=[-1, 1], const_optimizer="scipy",
-                 const_params=None, seed=0, early_stopping=False,
-                 threshold=1e-12, verbose=True, protected=True,
-                 pareto_front=False,
-                 # Constraint hyperparameters
-                 constrain_const=True,
-                 constrain_trig=True,
-                 constrain_inv=True,
-                 constrain_min_len=True,
-                 constrain_max_len=True,
-                 constrain_num_const=True,
-                 min_length=4,
-                 max_length=30,
-                 max_const=3):
+    def __init__(
+        self,
+        dataset,
+        metric="nmse",
+        population_size=1000,
+        generations=1000,
+        n_samples=None,
+        tournament_size=3,
+        p_crossover=0.5,
+        p_mutate=0.1,
+        const_range=[-1, 1],
+        const_optimizer="scipy",
+        const_params=None,
+        seed=0,
+        early_stopping=False,
+        threshold=1e-12,
+        verbose=True,
+        protected=True,
+        pareto_front=False,
+        # Constraint hyperparameters
+        constrain_const=True,
+        constrain_trig=True,
+        constrain_inv=True,
+        constrain_min_len=True,
+        constrain_max_len=True,
+        constrain_num_const=True,
+        min_length=4,
+        max_length=30,
+        max_const=3,
+    ):
 
         self.dataset = dataset
         self.fitted = False
 
-        assert n_samples is None or generations is None, "At least one of 'n_samples' or 'generations' must be None."
+        assert (
+            n_samples is None or generations is None
+        ), "At least one of 'n_samples' or 'generations' must be None."
         if generations is None:
             generations = int(n_samples / population_size)
 
@@ -62,32 +77,55 @@ class GP():
 
         # Fitness function used during training
         # Includes closure for fitness function metric and training data
-        fitness = partial(self.make_fitness(metric), y=dataset.y_train, var_y=np.var(dataset.y_train)) # Function of y_hat
-        self.fitness = partial(self.compute_fitness, optimize=True, fitness=fitness, X=dataset.X_train.T) # Function of individual
+        fitness = partial(
+            self.make_fitness(metric), y=dataset.y_train, var_y=np.var(dataset.y_train)
+        )  # Function of y_hat
+        self.fitness = partial(
+            self.compute_fitness, optimize=True, fitness=fitness, X=dataset.X_train.T
+        )  # Function of individual
 
         # Test NMSE, used as final performance metric
         # Includes closure for test data
-        nmse_test = partial(self.make_fitness("nmse"), y=dataset.y_test, var_y=np.var(dataset.y_test)) # Function of y_hat
-        self.nmse_test = partial(self.compute_fitness, optimize=False, fitness=nmse_test, X=dataset.X_test.T) # Function of individual
+        nmse_test = partial(
+            self.make_fitness("nmse"), y=dataset.y_test, var_y=np.var(dataset.y_test)
+        )  # Function of y_hat
+        self.nmse_test = partial(
+            self.compute_fitness, optimize=False, fitness=nmse_test, X=dataset.X_test.T
+        )  # Function of individual
 
         # Noiseless test NMSE, only used to determine success for final performance
         # Includes closure for noiseless test data
-        nmse_test_noiseless = partial(self.make_fitness("nmse"), y=dataset.y_test_noiseless, var_y=np.var(dataset.y_test_noiseless)) # Function of y_hat
-        self.nmse_test_noiseless = partial(self.compute_fitness, optimize=False, fitness=nmse_test_noiseless, X=dataset.X_test.T) # Function of individual
-        self.success = lambda ind : self.nmse_test_noiseless(ind)[0] < self.threshold # Function of individual
+        nmse_test_noiseless = partial(
+            self.make_fitness("nmse"),
+            y=dataset.y_test_noiseless,
+            var_y=np.var(dataset.y_test_noiseless),
+        )  # Function of y_hat
+        self.nmse_test_noiseless = partial(
+            self.compute_fitness,
+            optimize=False,
+            fitness=nmse_test_noiseless,
+            X=dataset.X_test.T,
+        )  # Function of individual
+        self.success = (
+            lambda ind: self.nmse_test_noiseless(ind)[0] < self.threshold
+        )  # Function of individual
 
         # Create the primitive set
         pset = gp.PrimitiveSet("MAIN", dataset.X_train.shape[1])
 
         # Add input variables
-        rename_kwargs = {"ARG{}".format(i) : "x{}".format(i + 1) for i in range(dataset.n_input_var)}
+        rename_kwargs = {
+            "ARG{}".format(i): "x{}".format(i + 1) for i in range(dataset.n_input_var)
+        }
         pset.renameArguments(**rename_kwargs)
 
         # Add primitives
         for op_name in dataset.function_set:
             if op_name == "const":
                 continue
-            assert op_name in function_map, "Operation {} not recognized.".format(op_name)
+            assert op_name in function_map, "Operation {} not recognized.".format(
+                op_name
+            )
 
             # Prepend available protected operators with "protected_"
             if protected and not op_name.startswith("protected_"):
@@ -122,46 +160,55 @@ class GP():
         # Define the evolutionary operators
         self.toolbox = base.Toolbox()
         self.toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2)
-        self.toolbox.register("individual", tools.initIterate, creator.Individual, self.toolbox.expr)
-        self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
+        self.toolbox.register(
+            "individual", tools.initIterate, creator.Individual, self.toolbox.expr
+        )
+        self.toolbox.register(
+            "population", tools.initRepeat, list, self.toolbox.individual
+        )
         self.toolbox.register("compile", gp.compile, pset=pset)
         self.toolbox.register("evaluate", self.fitness)
         self.toolbox.register("select", tools.selTournament, tournsize=tournament_size)
         self.toolbox.register("mate", gp.cxOnePoint)
         self.toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
-        self.toolbox.register('mutate', gp.mutUniform, expr=self.toolbox.expr_mut, pset=pset)
+        self.toolbox.register(
+            "mutate", gp.mutUniform, expr=self.toolbox.expr_mut, pset=pset
+        )
 
         # Define constraints, each defined by a func : gp.Individual -> bool.
         # We decorate mutation/crossover operators with constrain, which
         # replaces a child with a random parent if func(ind) is True.
-        constrain = partial(gp.staticLimit, max_value=0) # Constraint decorator
+        constrain = partial(gp.staticLimit, max_value=0)  # Constraint decorator
         funcs = []
         if constrain_min_len:
-            funcs.append(constraints.make_check_min_len(min_length)) # Minimum length
+            funcs.append(constraints.make_check_min_len(min_length))  # Minimum length
         if constrain_max_len:
-            funcs.append(constraints.make_check_max_len(max_length)) # Maximum length
+            funcs.append(constraints.make_check_max_len(max_length))  # Maximum length
         if constrain_inv:
-            funcs.append(constraints.check_inv) # Subsequence inverse unary operators
+            funcs.append(constraints.check_inv)  # Subsequence inverse unary operators
         if constrain_trig:
-            funcs.append(constraints.check_trig) # Nested trig operators
+            funcs.append(constraints.check_trig)  # Nested trig operators
         if constrain_const and const:
-            funcs.append(constraints.check_const) # All children are constants
+            funcs.append(constraints.check_const)  # All children are constants
         if constrain_num_const and const:
-            funcs.append(constraints.make_check_num_const(max_const)) # Number of constants
+            funcs.append(
+                constraints.make_check_num_const(max_const)
+            )  # Number of constants
         for func in funcs:
             for variation in ["mate", "mutate"]:
                 self.toolbox.decorate(variation, constrain(func))
 
         # Create the training function
         self.algorithm = algorithms.eaSimple
-    
 
     def compute_fitness(self, individual, fitness, X, optimize=False):
         """Compute the given fitness function on an individual using X."""
 
         if optimize:
             # Retrieve symbolic constants
-            const_idxs = [i for i, node in enumerate(individual) if node.name == "const"]
+            const_idxs = [
+                i for i, node in enumerate(individual) if node.name == "const"
+            ]
 
             # HACK: If early stopping threshold has been reached, don't do training optimization
             # Check if best individual (or any individual in Pareto front) has success=True
@@ -172,16 +219,16 @@ class GP():
         if optimize and len(const_idxs) > 0:
 
             # Objective function for evaluating constants
-            def obj(consts):                
+            def obj(consts):
                 for i, const in zip(const_idxs, consts):
                     individual[i] = gp.Terminal(const, False, object)
-                    individual[i].name = "const" # For good measure
+                    individual[i].name = "const"  # For good measure
                 f = self.toolbox.compile(expr=individual)
                 y_hat = f(*X)
                 y = self.dataset.y_train
                 if np.isfinite(y_hat).all():
                     # Squash error to prevent consts from becoming inf
-                    return -1/(1 + np.mean((y - y_hat)**2))
+                    return -1 / (1 + np.mean((y - y_hat) ** 2))
                 else:
                     return 0
 
@@ -190,7 +237,9 @@ class GP():
             optimized_consts = self.const_opt(obj, x0)
             for i, const in zip(const_idxs, optimized_consts):
                 individual[i] = gp.Terminal(const, False, object)
-                individual[i].name = "const" # This is necessary to ensure the constant is re-optimized in the next generation
+                individual[
+                    i
+                ].name = "const"  # This is necessary to ensure the constant is re-optimized in the next generation
 
         # Execute the individual
         f = self.toolbox.compile(expr=individual)
@@ -205,13 +254,17 @@ class GP():
 
         # Compute complexity (only if using Pareto front)
         if self.pareto_front:
-            complexity = sum([function_map[prim.name].complexity \
-                                if prim.name in function_map \
-                                else 1 for prim in individual])                    
+            complexity = sum(
+                [
+                    function_map[prim.name].complexity
+                    if prim.name in function_map
+                    else 1
+                    for prim in individual
+                ]
+            )
             fitness += (complexity,)
 
         return fitness
-
 
     def train(self):
         """Train the GP"""
@@ -227,21 +280,23 @@ class GP():
         else:
             self.hof = tools.HallOfFame(maxsize=1)
 
-        stats_fit = tools.Statistics(lambda p : p.fitness.values[0])
+        stats_fit = tools.Statistics(lambda p: p.fitness.values[0])
         stats_fit.register("avg", np.mean)
         stats_fit.register("min", np.min)
         stats_size = tools.Statistics(len)
         stats_size.register("avg", np.mean)
         mstats = tools.MultiStatistics(fitness=stats_fit, size=stats_size)
-        
-        pop, logbook = self.algorithm(population=pop,
-                                      toolbox=self.toolbox,
-                                      cxpb=self.p_crossover,
-                                      mutpb=self.p_mutate,
-                                      ngen=self.generations,
-                                      stats=mstats,
-                                      halloffame=self.hof,
-                                      verbose=self.verbose)
+
+        pop, logbook = self.algorithm(
+            population=pop,
+            toolbox=self.toolbox,
+            cxpb=self.p_crossover,
+            mutpb=self.p_mutate,
+            ngen=self.generations,
+            stats=mstats,
+            halloffame=self.hof,
+            verbose=self.verbose,
+        )
 
         self.fitted = True
 
@@ -258,39 +313,48 @@ class GP():
             if self.success(ind):
                 ind_best = ind
                 break
-        ind_best = ind_best if ind_best is not None else self.hof[0] # first element in self.hof is the fittest
+        ind_best = (
+            ind_best if ind_best is not None else self.hof[0]
+        )  # first element in self.hof is the fittest
 
         if self.verbose:
-            print("Printing {}:".format("Pareto front" if self.pareto_front else "hall of fame"))
+            print(
+                "Printing {}:".format(
+                    "Pareto front" if self.pareto_front else "hall of fame"
+                )
+            )
             print("Fitness  |  Individual")
             for ind in self.hof:
                 print(ind.fitness, [token.name for token in ind])
 
         return ind_best, logbook
 
-
     def make_fitness(self, metric):
         """Generates a fitness function by name"""
 
         if metric == "mse":
-            fitness = lambda y, y_hat, var_y : np.mean((y - y_hat)**2)
+            fitness = lambda y, y_hat, var_y: np.mean((y - y_hat) ** 2)
 
         elif metric == "rmse":
-            fitness = lambda y, y_hat, var_y : np.sqrt(np.mean((y - y_hat)**2))
+            fitness = lambda y, y_hat, var_y: np.sqrt(np.mean((y - y_hat) ** 2))
 
         elif metric == "nmse":
-            fitness = lambda y, y_hat, var_y : np.mean((y - y_hat)**2 / var_y)
+            fitness = lambda y, y_hat, var_y: np.mean((y - y_hat) ** 2 / var_y)
 
         elif metric == "nrmse":
-            fitness = lambda y, y_hat, var_y : np.sqrt(np.mean((y - y_hat)**2 / var_y))
+            fitness = lambda y, y_hat, var_y: np.sqrt(np.mean((y - y_hat) ** 2 / var_y))
 
         # Complementary inverse NMSE
         elif metric == "cinv_nmse":
-            fitness = lambda y, y_hat, var_y : 1 - 1/(1 + np.mean((y - y_hat)**2 / var_y))
+            fitness = lambda y, y_hat, var_y: 1 - 1 / (
+                1 + np.mean((y - y_hat) ** 2 / var_y)
+            )
 
         # Complementary inverse NRMSE
         elif metric == "cinv_nrmse":
-            fitness = lambda y, y_hat, var_y : 1 - 1/(1 + np.sqrt(np.mean((y - y_hat)**2 / var_y)))
+            fitness = lambda y, y_hat, var_y: 1 - 1 / (
+                1 + np.sqrt(np.mean((y - y_hat) ** 2 / var_y))
+            )
 
         else:
             raise ValueError("Metric not recognized.")

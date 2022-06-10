@@ -42,12 +42,12 @@ def is_pareto_efficient(costs):
     is_efficient = np.arange(costs.shape[0])
     n_points = costs.shape[0]
     next_point_index = 0  # Next index in the is_efficient array to search for
-    while next_point_index<len(costs):
-        nondominated_point_mask = np.any(costs<costs[next_point_index], axis=1)
+    while next_point_index < len(costs):
+        nondominated_point_mask = np.any(costs < costs[next_point_index], axis=1)
         nondominated_point_mask[next_point_index] = True
         is_efficient = is_efficient[nondominated_point_mask]  # Remove dominated points
         costs = costs[nondominated_point_mask]
-        next_point_index = np.sum(nondominated_point_mask[:next_point_index])+1
+        next_point_index = np.sum(nondominated_point_mask[:next_point_index]) + 1
     is_efficient_mask = np.zeros(n_points, dtype=bool)
     is_efficient_mask[is_efficient] = True
     return is_efficient_mask
@@ -109,14 +109,14 @@ def empirical_entropy(labels):
     if n_labels <= 1:
         return 0
 
-    value,counts = np.unique(labels, return_counts=True)
+    value, counts = np.unique(labels, return_counts=True)
     probs = counts / n_labels
     n_classes = np.count_nonzero(probs)
 
     if n_classes <= 1:
         return 0
 
-    ent = 0.
+    ent = 0.0
     # Compute entropy
     for i in probs:
         ent -= i * np.log(i)
@@ -180,14 +180,16 @@ def safe_update_summary(csv_path, new_data):
     """
     try:
         new_data_pd = pd.DataFrame(new_data, index=[0])
-        new_data_pd.set_index('seed', inplace=True)
+        new_data_pd.set_index("seed", inplace=True)
         if os.path.isfile(csv_path):
             old_data_pd = pd.read_csv(csv_path)
-            old_data_pd.set_index('seed', inplace=True)
-            merged_df = pd.concat([old_data_pd, new_data_pd], axis=0, ignore_index=False)
-            merged_df.to_csv(csv_path, header=True, mode='w+', index=True)
+            old_data_pd.set_index("seed", inplace=True)
+            merged_df = pd.concat(
+                [old_data_pd, new_data_pd], axis=0, ignore_index=False
+            )
+            merged_df.to_csv(csv_path, header=True, mode="w+", index=True)
         else:
-            new_data_pd.to_csv(csv_path, header=True, mode='w+', index=True)
+            new_data_pd.to_csv(csv_path, header=True, mode="w+", index=True)
         return True
     except:
         return False
@@ -208,12 +210,14 @@ def import_custom_source(import_source):
     """
 
     # Partially validates if the import_source is in correct format
-    regex = '[\w._]+:[\w._]+' #lib_name:class_name
+    regex = "[\w._]+:[\w._]+"  # lib_name:class_name
     m = re.match(pattern=regex, string=import_source)
     # Partial matches mean that the import will fail
-    assert m is not None and m.end() == len(import_source), "*** Failed to import malformed source string: "+import_source
+    assert m is not None and m.end() == len(import_source), (
+        "*** Failed to import malformed source string: " + import_source
+    )
 
-    source, type = import_source.split(':')
+    source, type = import_source.split(":")
 
     # Dynamically imports the configured source
     mod = importlib.import_module(source)
