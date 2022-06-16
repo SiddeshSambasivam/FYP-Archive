@@ -34,7 +34,7 @@ class Pipepile:
         np.random.seed(i)
         while True:
             try:
-                res = self.create_lambda(np.random.randint(2 ** 32 - 1))
+                res = self.create_lambda(np.random.randint(2**32 - 1))
                 assert type(res) == dclasses.Equation
                 return res
             except TimeoutError:

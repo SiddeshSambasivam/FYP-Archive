@@ -259,7 +259,7 @@ class Generator(object):
         # enumerate possible trees
         # first generate the tranposed version of D, then transpose it
         D = []
-        D.append([0] + ([self.nl ** i for i in range(1, 2 * max_ops + 1)]))
+        D.append([0] + ([self.nl**i for i in range(1, 2 * max_ops + 1)]))
         for n in range(1, 2 * max_ops + 1):  # number of operators
             s = [0]
             for e in range(1, 2 * max_ops - n + 1):  # number of empty nodes
@@ -286,11 +286,11 @@ class Generator(object):
         probs = []
         for i in range(nb_empty):
             probs.append(
-                (self.nl ** i) * self.p1 * self.ubi_dist[nb_empty - i][nb_ops - 1]
+                (self.nl**i) * self.p1 * self.ubi_dist[nb_empty - i][nb_ops - 1]
             )
         for i in range(nb_empty):
             probs.append(
-                (self.nl ** i) * self.p2 * self.ubi_dist[nb_empty - i + 1][nb_ops - 1]
+                (self.nl**i) * self.p2 * self.ubi_dist[nb_empty - i + 1][nb_ops - 1]
             )
         probs = [p / self.ubi_dist[nb_empty][nb_ops] for p in probs]
         probs = np.array(probs, dtype=np.float64)
