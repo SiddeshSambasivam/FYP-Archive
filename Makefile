@@ -1,4 +1,4 @@
-.PHONY: clean env format
+.PHONY: clean env format run_dso_feynman
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -32,6 +32,9 @@ else
 		conda env create -f environment.yml
 endif
 		@echo ">>> New conda env created. Activate with:\nsource activate FYP"
+
+run_dso_feynman:
+	python -m src.benchmark -d data/AIFeynman/ai_feynman.csv -m DSO
 
 format:
 	python -m black .
