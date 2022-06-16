@@ -1,8 +1,7 @@
 {
    "experiment" : {
 
-      "logdir" : "./log",
-      "seed" : 0
+      "logdir" : "./log"
    },
 
    
@@ -32,8 +31,12 @@
        
     "training" : {
       "n_samples": null,
-      "n_epochs": 125,
-      "epsilon" : 0.05
+      "n_epochs": 128,
+      "epsilon" : 0.05,
+      "complexity": "token",
+      "const_optimizer": "scipy",
+      "const_params": {},
+      "n_cores_batch": 4      
     },
 
    "controller" : {
