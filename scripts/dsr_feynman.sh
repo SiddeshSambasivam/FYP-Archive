@@ -1,0 +1,1 @@
+python -m src.benchmark -d data/AIFeynman/ai_feynman_3vars.csv 

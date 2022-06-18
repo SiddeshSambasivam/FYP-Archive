@@ -16,10 +16,11 @@ def get_dso_model(config_path: str) -> DeepSymbolicRegressor:
 
 class DSR(BaseSymbolicModel):
     def __init__(self, config_path: str) -> None:
-        super().__init__()
+
+        self.config_path = config_path
         self._model = self.init_model(config_path)
 
-    def init_model(config_path: str) -> DeepSymbolicRegressor:
+    def init_model(self, config_path: str) -> DeepSymbolicRegressor:
         """Creates DSR model from the config file"""
 
         return get_dso_model(config_path)
@@ -40,3 +41,9 @@ class DSR(BaseSymbolicModel):
 
         self._model.fit(x, y)
         self._is_fit = True
+
+    @classmethod
+    def new_model(cls):
+        """Creates a new model."""
+
+        return cls()

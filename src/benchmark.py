@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from src.models.base import BaseSymbolicModel
 from src.models.gplearn import Gplearn, FUNCTION_SET
+from src.models.dsr import DSR
 from src.dataset import Dataset, Equation, create_equation, load_equations_dataframe
 
 logger = logging.getLogger(__name__)
@@ -49,12 +50,14 @@ class ExperimentRunner:
     def run(self):
         """Runs the experiment."""
         logger.info("Running experiment...")
-
+        logging.basicConfig(level=logging.info)
         for i, equation in enumerate(self.dataset):
 
-            self.model._model = self.model.init_model(
-                *self.model.args[0], **self.model.args[1]
-            )
+            # self.model._model = self.model.init_model(
+                # *self.model.args[0], **self.model.args[1]
+            # )
+
+            self.model._model = self.model.init_model(self.model.config_path)
 
             logger.info(f"Running experiment for equation {i+1}")
 
@@ -134,8 +137,12 @@ def main(data_path: str) -> None:
     end = time.time()
     logger.info(f"Time to load and generate equations: {end - start} seconds")
 
-    model = Gplearn(function_set=FUNCTION_SET, tournament_size=10, verbose=1)
-    config = ExperimentConfig("gplearn", data_path, "logs/", "Tournament size=10")
+    # model = Gplearn(function_set=FUNCTION_SET, tournament_size=10, verbose=1)
+    # config = ExperimentConfig("gplearn", data_path, "logs/", "Tournament size=10")
+
+    model = DSR('configs/dsr_config.json')
+    config = ExperimentConfig("dsr", data_path, "logs/", "Epochs=128")
+
     exp = ExperimentRunner(dataset, model, config)
 
     exp.run()

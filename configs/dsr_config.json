@@ -31,7 +31,7 @@
        
     "training" : {
       "n_samples": null,
-      "n_epochs": 128,
+      "n_epochs": 8,
       "epsilon" : 0.05,
       "complexity": "token",
       "const_optimizer": "scipy",

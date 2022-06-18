@@ -46,7 +46,7 @@ class Gplearn(BaseSymbolicModel):
     }
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
+
         self._model = self.init_model(*args, **kwargs)
         self.args = [args, kwargs]
 

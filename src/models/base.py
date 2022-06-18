@@ -6,11 +6,11 @@ from ..metrics import compute_accuracy
 class BaseSymbolicModel(ABC):
     def __init__(self) -> None:
         super().__init__()
-        self._model = self.init_model()
+        self._model = None
         self._is_fit = False
 
     @abstractmethod
-    def init_model():
+    def init_model(*args, **kwargs):
         """Initializes the model."""
         raise NotImplementedError
 
