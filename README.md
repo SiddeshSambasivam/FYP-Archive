@@ -16,6 +16,7 @@ _This repository holds all the work for my final year project. (Jan 2022 - Dec 2
 -   Added baseline models
     -   Added `gplearn`
     -   Added `Deep symbolic Regression`
+    -   Added `AIFeynman`
 
 ## Development Setup
 
