@@ -73,8 +73,3 @@ class Gplearn(BaseSymbolicModel):
         self._model.fit(x, y)
         self._is_fit = True
 
-    @classmethod
-    def new_model(cls):
-        """Creates a new model."""
-
-        return cls()

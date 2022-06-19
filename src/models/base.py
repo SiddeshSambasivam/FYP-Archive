@@ -29,11 +29,6 @@ class BaseSymbolicModel(ABC):
         """Returns the equation of the model."""
         raise NotImplementedError
 
-    @abstractmethod
-    def new_model(cls):
-        """Creates a new model."""
-        raise NotImplementedError
-
     def score(self, x, y):
         """Computes the accuracy of the model on the given data."""
 
