@@ -6,12 +6,19 @@ _This repository holds all the work for my final year project. (Jan 2022 - Dec 2
 
 ### **Jun**
 
--   Added the benchmark datasets
+-   Setup the benchmark datasets
 
-    -   AI Feynman
+    -   Created `Dataset` class to standardise the data
+        -   Add support for Gaussian noise
+    -   Added AI Feynman Dataset
+
+        -   Created a subset dataset of equations containing upto 3 variables. `Feynman-03`
+
     -   Nguyen (Yet to add this dataset)
 
 -   Added benchmark scripts
+
+model-evaluation, Model Selection, and Algorithm Selection in Machine Learning
 
 -   Added baseline models
     -   Added `gplearn`

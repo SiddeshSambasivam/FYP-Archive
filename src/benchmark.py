@@ -88,7 +88,7 @@ class ExperimentRunner:
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         results_path = os.path.join(
-            self.config.results_path, f"{self.config.model_name}_{timestamp}.xlsx"
+            self.config.results_path, f"{self.config.model_name}_noise-{self.dataset.noise}_{timestamp}.xlsx"
         )
 
         # create result_path if it doesn't exist
@@ -120,7 +120,14 @@ class ExperimentRunner:
     help="Path to the csv containing the equations",
     required=True,
 )
-def main(data_path: str) -> None:
+@click.option(
+    "--noise",
+    "-n",
+    type=float,
+    help="Gaussian noise to add to the data",
+    default=0.0,
+)
+def main(data_path: str, noise:float) -> None:
 
     start = time.time()
 
@@ -131,7 +138,7 @@ def main(data_path: str) -> None:
         eq = create_equation(row["eq"], row["support"], row["num_points"])
         equations.append(eq)
 
-    dataset: List[Equation] = Dataset(equations)
+    dataset: List[Equation] = Dataset(equations, noise=noise)
     dataset.generate_data()
 
     end = time.time()
