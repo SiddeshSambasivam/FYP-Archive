@@ -17,6 +17,7 @@ from src.dataset import Dataset, Equation, create_equation, load_equations_dataf
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ExperimentConfig:
     model_name: str
