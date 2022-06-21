@@ -72,4 +72,3 @@ class Gplearn(BaseSymbolicModel):
 
         self._model.fit(x, y)
         self._is_fit = True
-

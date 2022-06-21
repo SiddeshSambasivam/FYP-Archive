@@ -35,7 +35,7 @@ class Dataset:
         equations: List of equations.
     """
 
-    def __init__(self, equations: List[Equation], noise: float=0.0) -> None:
+    def __init__(self, equations: List[Equation], noise: float = 0.0) -> None:
         self.equations = equations
         self.noise = noise
 
@@ -61,9 +61,9 @@ class Dataset:
 
         for equation in self.equations:
             x = self._generate_data_pts(equation)
-            
+
             y = equation.code(*x.T)
-            
+
             generated_noise = np.random.normal(0, self.noise, equation.number_of_points)
             y += generated_noise
 

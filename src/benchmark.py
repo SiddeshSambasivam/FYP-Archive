@@ -55,7 +55,7 @@ class ExperimentRunner:
         for i, equation in enumerate(self.dataset):
 
             # self.model._model = self.model.init_model(
-                # *self.model.args[0], **self.model.args[1]
+            # *self.model.args[0], **self.model.args[1]
             # )
             self.model._model = self.model.init_model()
 
@@ -88,7 +88,8 @@ class ExperimentRunner:
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         results_path = os.path.join(
-            self.config.results_path, f"{self.config.model_name}_noise-{self.dataset.noise}_{timestamp}.xlsx"
+            self.config.results_path,
+            f"{self.config.model_name}_noise-{self.dataset.noise}_{timestamp}.xlsx",
         )
 
         # create result_path if it doesn't exist
@@ -127,7 +128,7 @@ class ExperimentRunner:
     help="Gaussian noise to add to the data",
     default=0.0,
 )
-def main(data_path: str, noise:float) -> None:
+def main(data_path: str, noise: float) -> None:
 
     start = time.time()
 
@@ -150,7 +151,9 @@ def main(data_path: str, noise:float) -> None:
     # model = DSR('configs/dsr_config.json')
     # config = ExperimentConfig("dsr", data_path, "logs/", "Epochs=128")
 
-    model = AIFeynman("add,sub,mul,div,sin,cos,exp,log", NN_epochs=1, max_time=60, BF_try_time=5)
+    model = AIFeynman(
+        "add,sub,mul,div,sin,cos,exp,log", NN_epochs=1, max_time=60, BF_try_time=5
+    )
     config = ExperimentConfig("AIF", data_path, "logs/", "Epochs=10")
 
     exp = ExperimentRunner(dataset, model, config)
