@@ -1,4 +1,5 @@
 import unittest
+import torch
 from src.dataset import SymbolicOperatorDataset
 
 
@@ -38,7 +39,7 @@ class TestTorchSymbolicDataset(unittest.TestCase):
         dy = 1
 
         with self.assertRaises(AssertionError):
-            assert inputs.shape == (1, n, dx + dy)
+            assert inputs.shape == (n, dx + dy)
 
     def test_padding_shape(self):
 
@@ -46,4 +47,14 @@ class TestTorchSymbolicDataset(unittest.TestCase):
         inputs = eq["inputs"]
         num_points = eq["num_points"]
 
-        assert inputs.shape == (1, num_points, self.dataset.max_variables)
+        assert inputs.shape == (num_points, self.dataset.max_variables)
+
+    def test_torch_dataloader(self):
+
+        dataloader = torch.utils.data.DataLoader(self.dataset, batch_size=2)
+        for idx, batch in enumerate(dataloader):
+            assert batch["inputs"].shape == (
+                2,
+                batch["num_points"][0],
+                self.dataset.max_variables,
+            )
