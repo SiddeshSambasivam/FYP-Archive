@@ -5,7 +5,6 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchsummary import summary
 
 
 logger = logging.getLogger(__name__)
@@ -91,7 +90,7 @@ class SetEncoder(nn.Module):
         dim_in,
         dim_hidden: int = 512,
         num_heads: int = 8,
-        num_features: int = 10,
+        num_seed_features: int = 10,
         num_inds: int = 50,
         num_isab: int = 5,
         ln=False,
@@ -102,6 +101,7 @@ class SetEncoder(nn.Module):
         self.num_heads = num_heads
         self.num_inds = num_inds
         self.num_isab = num_isab
+        self.num_seed_features = num_seed_features
 
         self.input_layer = ISAB(dim_in, dim_hidden, num_heads, num_inds, ln=ln)
 
@@ -115,16 +115,10 @@ class SetEncoder(nn.Module):
                 )
             )
 
-        self.outl = PMA(dim_hidden, num_heads, num_features, ln=ln)
+        self.outl = PMA(dim_hidden, num_heads, num_seed_features, ln=ln)
         self.layers.append(("PMA", self.outl))
 
         self._enc = nn.Sequential(OrderedDict(self.layers))
-
-    def summary(self, input_size: tuple, batch_size: int, device: str = "cpu"):
-        sm = summary(self, input_size=input_size, batch_size=batch_size, device=device)
-        logger.log(logging.INFO, sm)
-
-        return sm
 
     def forward(self, X):
 
