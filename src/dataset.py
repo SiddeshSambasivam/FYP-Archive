@@ -76,7 +76,7 @@ def create_equation(eq: str, support: str, num_points: int, ops: str) -> Equatio
     eq = Equation(
         expr=eq,
         variables=variables,
-        ops=ops.split(','),
+        ops=ops.split(","),
         support=supp,
         number_of_points=num_points,
     )
@@ -130,6 +130,10 @@ class SymbolicOperatorDataset(TorchDataset):
     Args:
         data_path: Path to the dataframe containing the equations.
 
+        noise: Noise to be added to the generated data.
+
+        device: Device to be used for the data.
+
     """
 
     def __init__(self, data_path: str, noise: float = 0.0, device: str = "cpu"):
@@ -146,7 +150,7 @@ class SymbolicOperatorDataset(TorchDataset):
 
         self.device = device
         self.noise = noise
-        
+
         self.init_data()
 
     def init_data(self):
@@ -156,7 +160,7 @@ class SymbolicOperatorDataset(TorchDataset):
         for i, eq in enumerate(self.equations):
 
             eq = generate_equation_data(eq, self.noise)
-            x,y = eq.x, eq.y
+            x, y = eq.x, eq.y
 
             if x.shape[1] + 1 > self.max_variables:
                 raise ValueError("Number of variables exceed the maximum allowed")
@@ -178,15 +182,14 @@ class SymbolicOperatorDataset(TorchDataset):
         y_new = eq.y.unsqueeze(dim=1)
         inp = torch.cat((eq.x, y_new), dim=1)
 
-        inp_padded = F.pad(inp, (0, self.max_variables - inp.shape[1]))        
+        inp_padded = F.pad(inp, (0, self.max_variables - inp.shape[1]))
         inp_padded = inp_padded.unsqueeze(dim=0)
-        
+
         return {
             "inputs": inp_padded,
             "labels": eq.labels,
             "num_points": eq.number_of_points,
         }
-
 
     def __len__(self) -> int:
         return len(self.equations)
