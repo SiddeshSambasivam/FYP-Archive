@@ -1,14 +1,15 @@
+import os
 import logging
 from dataclasses import dataclass, field
-import os
 from typing import Callable, List, Type
-from regex import F
 
 import torch
+import torch.nn.functional as F
+from torch.utils.data import Dataset as TorchDataset
+
 import numpy as np
 import pandas as pd
 from sympy import Symbol, lambdify, sympify
-from torch.utils.data import Dataset as TorchDataset
 from sklearn.preprocessing import MultiLabelBinarizer
 
 logger = logging.getLogger(__name__)
@@ -138,33 +139,54 @@ class SymbolicOperatorDataset(TorchDataset):
 
         self.df = load_equations_dataframe(data_path)
         self.equations = [create_equation(*x) for x in self.df.itertuples(index=False)]
+        self.max_variables = 10
 
         self.multilabel_binarizer = MultiLabelBinarizer()
         self.multilabel_binarizer = self.multilabel_binarizer.fit([AVAILABLE_OPERATORS])
 
         self.device = device
         self.noise = noise
+        
+        self.init_data()
+
+    def init_data(self):
+
+        logger.log(logging.INFO, "Generating data...")
+
+        for i, eq in enumerate(self.equations):
+
+            eq = generate_equation_data(eq, self.noise)
+            x,y = eq.x, eq.y
+
+            if x.shape[1] + 1 > self.max_variables:
+                raise ValueError("Number of variables exceed the maximum allowed")
+
+            eq.x = torch.tensor(x, dtype=torch.float32, device=self.device)
+            eq.y = torch.tensor(y, dtype=torch.float32, device=self.device)
+
+            encoded_label = list(self.multilabel_binarizer.fit_transform(eq.ops)[0])
+            eq.labels = torch.tensor(encoded_label, dtype=torch.int, device=self.device)
+
+            self.equations[i] = eq
+
+        logger.log(logging.INFO, "Data generated.")
 
     def __getitem__(self, index: int) -> Equation:
 
         eq = self.equations[index]
-        if eq.x is None:
-            x = generate_data_pts(eq)
-            self.equations[index].x = torch.tensor(
-                x, device=self.device, requires_grad=False
-            )
 
-        if eq.y is None:
-            y = eq.code(*eq.x.T)
-            self.equations[index].y = y
+        y_new = eq.y.unsqueeze(dim=1)
+        inp = torch.cat((eq.x, y_new), dim=1)
 
-        if len(eq.labels) == 0:
-            encoded_label = list(self.multilabel_binarizer.fit_transform(eq.ops)[0])
-            self.equations[index].labels = torch.tensor(
-                encoded_label, device=self.device, requires_grad=False
-            )
+        inp_padded = F.pad(inp, (0, self.max_variables - inp.shape[1]))        
+        inp_padded = inp_padded.unsqueeze(dim=0)
+        
+        return {
+            "inputs": inp_padded,
+            "labels": eq.labels,
+            "num_points": eq.number_of_points,
+        }
 
-        return self.equations[index]
 
     def __len__(self) -> int:
         return len(self.equations)
