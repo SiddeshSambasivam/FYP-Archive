@@ -183,7 +183,6 @@ class SymbolicOperatorDataset(TorchDataset):
         inp = torch.cat((eq.x, y_new), dim=1)
 
         inp_padded = F.pad(inp, (0, self.max_variables - inp.shape[1]))
-        inp_padded = inp_padded.unsqueeze(dim=0)
 
         return {
             "inputs": inp_padded,
