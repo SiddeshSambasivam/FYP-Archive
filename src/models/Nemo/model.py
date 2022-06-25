@@ -53,27 +53,31 @@ class NemoModel(torch.nn.Module):
         )
         self.dec = TransformerDecoder(self.dec_layer, num_layers=5)
 
+        for i in range(self.num_classes):
+            setattr(
+                self,
+                f"fc_{i}",
+                torch.nn.Linear(self.num_seed_features, 1),
+            )
+
         self.fc = torch.nn.Linear(
-            self.dim_hidden * self.num_seed_features, self.num_classes
+            self.num_seed_features, self.num_classes
         )
-        self.sigmoid = torch.nn.Sigmoid()
 
     def forward(self, X):
 
         enc_out = self.enc(X)
 
         dec_out = self.dec(enc_out, memory=enc_out)
-        dec_out = torch.flatten(dec_out, 1)
+        dec_out = dec_out.mean(dim=2)
 
-        fc_out = self.fc(dec_out)
-
-        out = self.sigmoid(fc_out)
+        out = torch.tensor([])
+        for i in range(self.num_classes):
+            out = torch.concat(
+                (out, getattr(self, f"fc_{i}")(dec_out)), dim=1
+            )
+            
+        if self.training is False:
+            return torch.sigmoid(out)
 
         return out
-
-    def summary(self, input_size: tuple, batch_size: int, device: str = "cpu"):
-        """Logs the model architecture and parameters."""
-        sm = summary(self, input_size=input_size, batch_size=batch_size, device=device)
-        logger.log(logging.INFO, sm)
-
-        return sm

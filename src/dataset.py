@@ -21,12 +21,10 @@ AVAILABLE_OPERATORS = [
     "div",
     "sqrt",
     "log",
-    "inv",
     "sin",
-    "neg",
     "pow",
     "cos",
-    "arcsin",
+    "exp",
 ]
 
 
@@ -40,6 +38,7 @@ class Equation:
     code: Callable = field(init=False, default=None)
     labels: List[int] = field(init=False, default_factory=list)
     sympy_expr: Type[Symbol] = field(init=False, default=None)
+    valid:bool = True
 
     def __post_init__(self):
         self.code = lambdify([*self.variables], expr=self.expr)
@@ -72,6 +71,10 @@ def create_equation(eq: str, support: str, num_points: int, ops: str) -> Equatio
 
     supp = eval(support)
     variables = set(supp.keys())
+    num_points = 10000
+
+    if type(ops) != str:
+        ops = ""
 
     eq = Equation(
         expr=eq,
@@ -124,7 +127,6 @@ def generate_multiple_equation_data(
 
     return equations
 
-
 class SymbolicOperatorDataset(TorchDataset):
     """PyTorch dataset of equations for symbolic operator discovery
     Args:
@@ -132,23 +134,19 @@ class SymbolicOperatorDataset(TorchDataset):
 
         noise: Noise to be added to the generated data.
 
-        device: Device to be used for the data.
-
     """
 
-    def __init__(self, data_path: str, noise: float = 0.0, device: str = "cpu"):
+    def __init__(self, data_path: str, noise: float = 0.0, max_variables: int = 10):
 
         if not os.path.exists(data_path):
             raise ValueError(f"{data_path} does not exist")
 
         self.df = load_equations_dataframe(data_path)
         self.equations = [create_equation(*x) for x in self.df.itertuples(index=False)]
-        self.max_variables = 10
+        self.max_variables = max_variables
 
-        self.multilabel_binarizer = MultiLabelBinarizer()
-        self.multilabel_binarizer = self.multilabel_binarizer.fit([AVAILABLE_OPERATORS])
+        self.multilabel_binarizer = MultiLabelBinarizer(classes=AVAILABLE_OPERATORS)
 
-        self.device = device
         self.noise = noise
 
         self.init_data()
@@ -156,6 +154,7 @@ class SymbolicOperatorDataset(TorchDataset):
     def init_data(self):
 
         logger.log(logging.INFO, "Generating data...")
+        labels = []
 
         for i, eq in enumerate(self.equations):
 
@@ -165,13 +164,16 @@ class SymbolicOperatorDataset(TorchDataset):
             if x.shape[1] + 1 > self.max_variables:
                 raise ValueError("Number of variables exceed the maximum allowed")
 
-            eq.x = torch.tensor(x, dtype=torch.float32, device=self.device)
-            eq.y = torch.tensor(y, dtype=torch.float32, device=self.device)
+            eq.x = torch.tensor(x, dtype=torch.float32)
+            eq.y = torch.tensor(y, dtype=torch.float32)
 
-            encoded_label = list(self.multilabel_binarizer.fit_transform(eq.ops)[0])
-            eq.labels = torch.tensor(encoded_label, dtype=torch.int, device=self.device)
+            labels.append(eq.ops)
 
             self.equations[i] = eq
+
+        enc_labels = self.multilabel_binarizer.fit_transform(labels)
+        for i in range(len(self.equations)):
+            self.equations[i].labels = torch.tensor(enc_labels[i], dtype=torch.float)
 
         logger.log(logging.INFO, "Data generated.")
 
